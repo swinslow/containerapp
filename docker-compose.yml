@@ -1,0 +1,11 @@
+version: '3'
+services:
+  app:
+    build: .
+    command: ["go", "run", "main.go"]
+    volumes:
+      - ./webapp:/go/src/app
+    ports:
+      - "8080:3005"
+    environment:
+      WEBPORT: 3005
