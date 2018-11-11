@@ -1,8 +1,8 @@
 FROM golang:1.11
 
-RUN mkdir -p /go/src/app
-WORKDIR /go/src/app
+RUN mkdir -p /go/src/github.com/swinslow/containerapp
+WORKDIR /go/src/github.com/swinslow/containerapp
 
-ADD ./webapp /go/src/app
+ADD . /go/src/github.com/swinslow/containerapp
 
-RUN go get -v
+RUN go get -v ./...
