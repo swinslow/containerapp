@@ -27,6 +27,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", env.rootHandler)
+	http.HandleFunc("/history", env.historyHandler)
 	fmt.Println("Listening on :" + WEBPORT)
 	log.Fatal(http.ListenAndServe(":"+WEBPORT, nil))
 }
@@ -59,6 +60,20 @@ func (env *Env) rootHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w, "Hello, path is %s<br><br>\n", r.URL.Path)
 
+	// and add this one for future visits
+	err := env.db.AddVisitedPath(r.URL.Path)
+	if err != nil {
+		http.Error(w, http.StatusText(500), 500)
+	}
+}
+
+func (env *Env) historyHandler(w http.ResponseWriter, r *http.Request) {
+	// we only take GET requests
+	if r.Method != "GET" {
+		http.Error(w, http.StatusText(405), 405)
+		return
+	}
+
 	// get prior visited paths
 	vpaths, err := env.db.GetAllVisitedPaths()
 	if err != nil {
@@ -70,10 +85,4 @@ func (env *Env) rootHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "<li>%s (%v)</li>\n", vp.Path, vp.Date)
 	}
 	fmt.Fprintf(w, "</ul>\n")
-
-	// and add this one for future visits
-	err = env.db.AddVisitedPath(r.URL.Path)
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-	}
 }
