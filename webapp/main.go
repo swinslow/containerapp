@@ -34,7 +34,7 @@ func main() {
 // ===== environment setup =====
 
 func setupEnv() (*Env, error) {
-	db, err := models.NewDB("host=db sslmode=disable dbname=dev user=postgres-dev password=s3cr3tp4ssw0rd")
+	db, err := models.NewDB("host=db sslmode=disable dbname=dev user=postgres-dev")
 	if err != nil {
 		return nil, err
 	}

@@ -6,7 +6,6 @@ services:
     environment:
       POSTGRES_DB: dev
       POSTGRES_USER: postgres-dev
-      POSTGRES_PASSWORD: s3cr3tp4ssw0rd
     ports:
       - 5432:5432
 
