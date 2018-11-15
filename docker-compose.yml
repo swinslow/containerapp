@@ -9,9 +9,9 @@ services:
     ports:
       - 5432:5432
 
-  app:
+  api:
     build: .
-    command: ["./utils/wait-for-it/wait-for-it.sh", "db:5432", "--", "go", "run", "webapp/main.go"]
+    command: ["./utils/wait-for-it/wait-for-it.sh", "db:5432", "--", "go", "run", "api/main.go"]
     volumes:
       - .:/go/src/github.com/swinslow/containerapp
     ports:
