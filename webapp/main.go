@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gorilla/mux"
+
 	"github.com/swinslow/containerapp/models"
 )
 
@@ -26,10 +28,14 @@ func main() {
 		log.Panic(err)
 	}
 
-	http.HandleFunc("/", env.rootHandler)
-	http.HandleFunc("/history", env.historyHandler)
+	// create router and register handlers
+	router := mux.NewRouter()
+
+	router.HandleFunc("/history", env.historyHandler).Methods("GET")
+	router.HandleFunc("/{rest:.*}", env.rootHandler).Methods("GET")
+
 	fmt.Println("Listening on :" + WEBPORT)
-	log.Fatal(http.ListenAndServe(":"+WEBPORT, nil))
+	log.Fatal(http.ListenAndServe(":"+WEBPORT, router))
 }
 
 // ===== environment setup =====
