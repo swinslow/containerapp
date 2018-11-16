@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
+import ButtonExampleEmphasis from './ButtonExampleEmphasis';
 import logo from './logo.svg';
+import 'semantic-ui-css/semantic.min.css';
 import './App.css';
 
 class App extends Component {
@@ -8,7 +10,7 @@ class App extends Component {
       <div className="App">
         <header className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
-          <h1>Hello world!</h1>
+          <h1>Hello!</h1>
           <p>
             Edit <code>src/App.js</code> and save to reload.
           </p>
@@ -19,7 +21,8 @@ class App extends Component {
             rel="noopener noreferrer"
           >
             Learn React
-          </a>
+          </a><br />
+          <ButtonExampleEmphasis />
         </header>
       </div>
     );
