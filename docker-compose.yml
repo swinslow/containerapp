@@ -10,13 +10,27 @@ services:
       - 5432:5432
 
   api:
-    build: .
-    command: ["./utils/wait-for-it/wait-for-it.sh", "db:5432", "--", "go", "run", "api/main.go"]
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    command: ["./utils/wait-for-it/wait-for-it.sh", "db:5432", "--", "go", "run", "main.go"]
     volumes:
-      - .:/go/src/github.com/swinslow/containerapp
+      - .:/go/src/github.com/swinslow/containerapp/api
     ports:
-      - "8080:3005"
+      - "3005:3005"
     depends_on:
       - db
     environment:
       WEBPORT: 3005
+
+  webapp:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+    volumes:
+      - './webapp:/webapp'
+      - '/webapp/node_modules'
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
