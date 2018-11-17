@@ -5,7 +5,7 @@ services:
     build:
       context: api
       dockerfile: Dockerfile
-    command: ["./utils/wait-for-it/wait-for-it.sh", "db:5432", "--", "go", "run", "main.go"]
+    command: ["./utils/wait-for-it/wait-for-it.sh", "db:5432", "--", "/go/bin/api"]
     volumes:
       - .:/go/src/github.com/swinslow/containerapp
     ports:
