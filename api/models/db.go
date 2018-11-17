@@ -3,6 +3,7 @@ package models
 
 import (
 	"database/sql"
+	"time"
 
 	// postgres driver
 	_ "github.com/lib/pq"
@@ -12,7 +13,7 @@ import (
 // using either a backing database (production) or mocks (test).
 type Datastore interface {
 	GetAllVisitedPaths() ([]*VisitedPath, error)
-	AddVisitedPath(string) error
+	AddVisitedPath(string, time.Time) error
 }
 
 // DB holds the actual database/sql object as well as its related
