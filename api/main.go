@@ -5,10 +5,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/mux"
 
-	"github.com/swinslow/containerapp/models"
+	"github.com/swinslow/containerapp/api/models"
 )
 
 // Env is the environment for the web handlers.
@@ -67,7 +68,7 @@ func (env *Env) rootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, path is %s<br><br>\n", r.URL.Path)
 
 	// and add this one for future visits
-	err := env.db.AddVisitedPath(r.URL.Path)
+	err := env.db.AddVisitedPath(r.URL.Path, time.Now())
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 	}

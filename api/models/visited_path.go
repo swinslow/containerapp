@@ -44,13 +44,13 @@ func (db *DB) GetAllVisitedPaths() ([]*VisitedPath, error) {
 	return vpaths, nil
 }
 
-func (db *DB) AddVisitedPath(p string) error {
+func (db *DB) AddVisitedPath(p string, t time.Time) error {
 	// move out into one-time-prepared statement?
-	stmt, err := db.sqldb.Prepare("INSERT INTO visitedpaths(path, visit_date) VALUES($1, $2)")
+	stmt, err := db.sqldb.Prepare("INSERT INTO visitedpaths(path, visit_date) VALUES ($1, $2)")
 	if err != nil {
 		return err
 	}
-	_, err = stmt.Exec(p, time.Now())
+	_, err = stmt.Exec(p, t)
 	if err != nil {
 		return err
 	}
