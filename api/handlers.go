@@ -44,7 +44,8 @@ func (env *Env) historyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprintf(w, "Previously visited paths:<br>\n<ul>\n")
 	for _, vp := range vpaths {
-		fmt.Fprintf(w, "<li>%s (%v)</li>\n", vp.Path, vp.Date)
+		fDate := vp.Date.Format("2006-01-02 15:04:05 -0700 MST")
+		fmt.Fprintf(w, "<li>%s (%s)</li>\n", vp.Path, fDate)
 	}
 	fmt.Fprintf(w, "</ul>\n")
 }
