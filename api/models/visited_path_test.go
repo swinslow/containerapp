@@ -79,7 +79,6 @@ func TestShouldAddVisitedPath(t *testing.T) {
 	helloDate := time.Date(2018, time.November, 15, 0, 0, 0, 0, time.UTC)
 
 	regexStmt := `[INSERT INTO visitedpaths(path, visit_date) VALUES (\$1, \$2)]`
-	//stmt := `INSERT INTO visitedpaths(path, visit_date) VALUES (\$1, \$2)`
 	mock.ExpectPrepare(regexStmt)
 	stmt := "INSERT INTO visitedpaths"
 	mock.ExpectExec(stmt).

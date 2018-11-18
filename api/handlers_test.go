@@ -13,7 +13,38 @@ import (
 // define mock Datastore
 
 type mockDB struct {
-	addedVPs []*models.VisitedPath
+	addedVPs   []*models.VisitedPath
+	addedUsers []*models.User
+}
+
+func (mdb *mockDB) GetAllUsers() ([]*models.User, error) {
+	users := make([]*models.User, 0)
+	users = append(users, &models.User{
+		ID:      91461,
+		Email:   "johndoe@example.com",
+		Name:    "John Doe",
+		IsAdmin: false,
+	})
+	users = append(users, &models.User{
+		ID:      914611345,
+		Email:   "janedoe@example.com",
+		Name:    "Jane Doe",
+		IsAdmin: true,
+	})
+	return users, nil
+}
+
+func (mdb *mockDB) AddUser(id uint32, email string, name string, is_admin bool) error {
+	if mdb.addedUsers == nil {
+		mdb.addedUsers = make([]*models.User, 0)
+	}
+	mdb.addedUsers = append(mdb.addedUsers, &models.User{
+		ID:      id,
+		Email:   email,
+		Name:    name,
+		IsAdmin: is_admin,
+	})
+	return nil
 }
 
 func (mdb *mockDB) GetAllVisitedPaths() ([]*models.VisitedPath, error) {

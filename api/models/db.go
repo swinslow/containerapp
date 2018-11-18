@@ -12,6 +12,10 @@ import (
 // Datastore defines the interface to be implemented by models,
 // using either a backing database (production) or mocks (test).
 type Datastore interface {
+	// Users
+	GetAllUsers() ([]*User, error)
+	AddUser(uint32, string, string, bool) error
+	// VisitedPaths
 	GetAllVisitedPaths() ([]*VisitedPath, error)
 	AddVisitedPath(string, time.Time) error
 }
