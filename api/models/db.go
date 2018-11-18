@@ -17,7 +17,8 @@ type Datastore interface {
 	AddUser(uint32, string, string, bool) error
 	// VisitedPaths
 	GetAllVisitedPaths() ([]*VisitedPath, error)
-	AddVisitedPath(string, time.Time) error
+	GetAllVisitedPathsForUserID(uint32) ([]*VisitedPath, error)
+	AddVisitedPath(string, time.Time, uint32) error
 }
 
 // DB holds the actual database/sql object as well as its related

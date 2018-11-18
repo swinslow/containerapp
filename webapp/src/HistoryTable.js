@@ -10,6 +10,7 @@ function createHistoryRows(history) {
             <Table.Row key={i}>
                 <Table.Cell>{h.path}</Table.Cell>
                 <Table.Cell>{h.date}</Table.Cell>
+                <Table.Cell>{h.user_id}</Table.Cell>
             </Table.Row>
         );
         rows.push(row);
@@ -35,6 +36,7 @@ function HistoryTable(props) {
                     <Table.Row>
                         <Table.HeaderCell>Path</Table.HeaderCell>
                         <Table.HeaderCell>Date</Table.HeaderCell>
+                        <Table.HeaderCell>User ID</Table.HeaderCell>
                     </Table.Row>
                 </Table.Header>
 

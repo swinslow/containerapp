@@ -34,7 +34,7 @@ func (mdb *mockDB) GetAllUsers() ([]*models.User, error) {
 	return users, nil
 }
 
-func (mdb *mockDB) AddUser(id uint32, email string, name string, is_admin bool) error {
+func (mdb *mockDB) AddUser(id uint32, email string, name string, isAdmin bool) error {
 	if mdb.addedUsers == nil {
 		mdb.addedUsers = make([]*models.User, 0)
 	}
@@ -42,7 +42,7 @@ func (mdb *mockDB) AddUser(id uint32, email string, name string, is_admin bool) 
 		ID:      id,
 		Email:   email,
 		Name:    name,
-		IsAdmin: is_admin,
+		IsAdmin: isAdmin,
 	})
 	return nil
 }
@@ -50,23 +50,36 @@ func (mdb *mockDB) AddUser(id uint32, email string, name string, is_admin bool) 
 func (mdb *mockDB) GetAllVisitedPaths() ([]*models.VisitedPath, error) {
 	vps := make([]*models.VisitedPath, 0)
 	vps = append(vps, &models.VisitedPath{
-		Path: "/path1",
-		Date: time.Date(2018, time.November, 17, 0, 0, 0, 0, time.UTC),
+		Path:   "/path1",
+		Date:   time.Date(2018, time.November, 17, 0, 0, 0, 0, time.UTC),
+		UserID: 49185,
 	})
 	vps = append(vps, &models.VisitedPath{
-		Path: "/path2",
-		Date: time.Date(2018, time.November, 16, 0, 0, 0, 0, time.UTC),
+		Path:   "/path2",
+		Date:   time.Date(2018, time.November, 16, 0, 0, 0, 0, time.UTC),
+		UserID: 847102,
 	})
 	return vps, nil
 }
 
-func (mdb *mockDB) AddVisitedPath(p string, ti time.Time) error {
+func (mdb *mockDB) GetAllVisitedPathsForUserID(uint32) ([]*models.VisitedPath, error) {
+	vps := make([]*models.VisitedPath, 0)
+	vps = append(vps, &models.VisitedPath{
+		Path:   "/path1",
+		Date:   time.Date(2018, time.November, 17, 0, 0, 0, 0, time.UTC),
+		UserID: 49185,
+	})
+	return vps, nil
+}
+
+func (mdb *mockDB) AddVisitedPath(p string, ti time.Time, userID uint32) error {
 	if mdb.addedVPs == nil {
 		mdb.addedVPs = make([]*models.VisitedPath, 0)
 	}
 	mdb.addedVPs = append(mdb.addedVPs, &models.VisitedPath{
-		Path: p,
-		Date: ti,
+		Path:   p,
+		Date:   ti,
+		UserID: userID,
 	})
 	return nil
 }
@@ -81,24 +94,20 @@ func TestCanGetRootHandler(t *testing.T) {
 	http.HandlerFunc(env.rootHandler).ServeHTTP(rec, req)
 
 	// check that the correct JSON strings were returned
-	// read back in as string-string map
-	var strs map[string]string
-	err := json.Unmarshal([]byte(rec.Body.String()), &strs)
+	vpGot := &models.VisitedPath{}
+	err := json.Unmarshal([]byte(rec.Body.String()), &vpGot)
 	if err != nil {
 		t.Fatalf("got non-nil error: %v", err)
 	}
 
-	// check for expected length and values
-	if len(strs) != 2 {
-		t.Fatalf("expected len %d, got %d", 2, len(strs))
-	}
-	if strs["path"] != "/abc" {
-		t.Errorf("expected %s, got %s", "/abc", strs["path"])
+	// check for expected values
+	if vpGot.Path != "/abc" {
+		t.Errorf("expected %v, got %v", "/abc", vpGot.Path)
 	}
 	// don't check for exact date, b/c it'll vary per call
-	// just make sure it exists and is non-nil
-	if strs["date"] == "" {
-		t.Errorf("expected non-nil date, got nil")
+	// FIXME for now, checking for hard-coded user id
+	if vpGot.UserID != 1001 {
+		t.Errorf("expected %v, got %v", 1001, vpGot.UserID)
 	}
 
 	// and check that AddVisitedPath was called
@@ -106,7 +115,7 @@ func TestCanGetRootHandler(t *testing.T) {
 		t.Errorf("expected len %d, got %d", 1, len(db.addedVPs))
 	}
 	if db.addedVPs[0].Path != "/abc" {
-		t.Errorf("expected %s, got %s", "/abc", db.addedVPs[0].Path)
+		t.Errorf("expected %v, got %v", "/abc", db.addedVPs[0].Path)
 	}
 }
 
@@ -138,8 +147,8 @@ func TestCanGetHistory(t *testing.T) {
 	http.HandlerFunc(env.historyHandler).ServeHTTP(rec, req)
 
 	// check that the correct JSON strings were returned
-	// read back in as string-string map
-	var vals []map[string]string
+	// read back in as slice of VisitedPaths
+	var vals []*models.VisitedPath
 	err := json.Unmarshal([]byte(rec.Body.String()), &vals)
 	if err != nil {
 		t.Fatalf("got non-nil error: %v", err)
@@ -150,26 +159,28 @@ func TestCanGetHistory(t *testing.T) {
 		t.Fatalf("expected len %d, got %d", 2, len(vals))
 	}
 
-	path1 := vals[0]
-	if len(path1) != 2 {
-		t.Fatalf("expected len %d, got %d", 2, len(path1))
+	vp1 := vals[0]
+	if vp1.Path != "/path1" {
+		t.Errorf("expected %v, got %v", "/vp1", vp1.Path)
 	}
-	if path1["path"] != "/path1" {
-		t.Errorf("expected %s, got %s", "/path1", path1["path"])
+	wantDate1 := time.Date(2018, time.November, 17, 0, 0, 0, 0, time.UTC)
+	if vp1.Date != wantDate1 {
+		t.Errorf("expected %v, got %v", wantDate1, vp1.Date)
 	}
-	if path1["date"] != "2018-11-17T00:00:00Z" {
-		t.Errorf("expected %s, got %s", "2018-11-17T00:00:00Z", path1["date"])
+	if vp1.UserID != 49185 {
+		t.Errorf("expected %v, got %v", 49185, vp1.UserID)
 	}
 
-	path2 := vals[1]
-	if len(path2) != 2 {
-		t.Fatalf("expected len %d, got %d", 2, len(path2))
+	vp2 := vals[1]
+	if vp2.Path != "/path2" {
+		t.Errorf("expected %v, got %v", "/vp2", vp2.Path)
 	}
-	if path2["path"] != "/path2" {
-		t.Errorf("expected %s, got %s", "/path2", path2["path"])
+	wantDate2 := time.Date(2018, time.November, 16, 0, 0, 0, 0, time.UTC)
+	if vp2.Date != wantDate2 {
+		t.Errorf("expected %v, got %v", wantDate2, vp2.Date)
 	}
-	if path2["date"] != "2018-11-16T00:00:00Z" {
-		t.Errorf("expected %s, got %s", "2018-11-16T00:00:00Z", path2["date"])
+	if vp2.UserID != 847102 {
+		t.Errorf("expected %v, got %v", 847102, vp2.UserID)
 	}
 }
 

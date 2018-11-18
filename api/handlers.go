@@ -24,9 +24,12 @@ func (env *Env) rootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	d := time.Now()
+	// FIXME hard-coding ID for now
+	userID := uint32(1001)
 	vp := models.VisitedPath{
-		Path: r.URL.Path,
-		Date: d,
+		Path:   r.URL.Path,
+		Date:   d,
+		UserID: userID,
 	}
 	js, err := json.Marshal(&vp)
 	if err != nil {
@@ -36,7 +39,7 @@ func (env *Env) rootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, string(js))
 
 	// and add this one for future visits
-	err = env.db.AddVisitedPath(r.URL.Path, d)
+	err = env.db.AddVisitedPath(r.URL.Path, d, userID)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 	}
