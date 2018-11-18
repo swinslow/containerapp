@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -48,10 +49,25 @@ func TestCanGetRootHandler(t *testing.T) {
 	env := Env{db: db}
 	http.HandlerFunc(env.rootHandler).ServeHTTP(rec, req)
 
-	// check that the correct text was returned
-	expected := "Hello, path is /abc<br><br>\n"
-	if expected != rec.Body.String() {
-		t.Errorf("expected %v, got %v", expected, rec.Body.String())
+	// check that the correct JSON strings were returned
+	// read back in as string-string map
+	var strs map[string]string
+	err := json.Unmarshal([]byte(rec.Body.String()), &strs)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	// check for expected length and values
+	if len(strs) != 2 {
+		t.Fatalf("expected len %d, got %d", 2, len(strs))
+	}
+	if strs["path"] != "/abc" {
+		t.Errorf("expected %s, got %s", "/abc", strs["path"])
+	}
+	// don't check for exact date, b/c it'll vary per call
+	// just make sure it exists and is non-nil
+	if strs["date"] == "" {
+		t.Errorf("expected non-nil date, got nil")
 	}
 
 	// and check that AddVisitedPath was called
@@ -90,15 +106,39 @@ func TestCanGetHistory(t *testing.T) {
 	env := Env{db: db}
 	http.HandlerFunc(env.historyHandler).ServeHTTP(rec, req)
 
-	// check that the correct text was returned
-	expected := `Previously visited paths:<br>
-<ul>
-<li>/path1 (2018-11-17 00:00:00 +0000 UTC)</li>
-<li>/path2 (2018-11-16 00:00:00 +0000 UTC)</li>
-</ul>
-`
-	if expected != rec.Body.String() {
-		t.Errorf("expected %v, got %v", expected, rec.Body.String())
+	// check that the correct JSON strings were returned
+	// read back in as string-string map
+	var vals []map[string]string
+	err := json.Unmarshal([]byte(rec.Body.String()), &vals)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	// check for expected length and values
+	if len(vals) != 2 {
+		t.Fatalf("expected len %d, got %d", 2, len(vals))
+	}
+
+	path1 := vals[0]
+	if len(path1) != 2 {
+		t.Fatalf("expected len %d, got %d", 2, len(path1))
+	}
+	if path1["path"] != "/path1" {
+		t.Errorf("expected %s, got %s", "/path1", path1["path"])
+	}
+	if path1["date"] != "2018-11-17T00:00:00Z" {
+		t.Errorf("expected %s, got %s", "2018-11-17T00:00:00Z", path1["date"])
+	}
+
+	path2 := vals[1]
+	if len(path2) != 2 {
+		t.Fatalf("expected len %d, got %d", 2, len(path2))
+	}
+	if path2["path"] != "/path2" {
+		t.Errorf("expected %s, got %s", "/path2", path2["path"])
+	}
+	if path2["date"] != "2018-11-16T00:00:00Z" {
+		t.Errorf("expected %s, got %s", "2018-11-16T00:00:00Z", path2["date"])
 	}
 }
 

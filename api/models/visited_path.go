@@ -1,11 +1,50 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // VisitedPath describes an instance when this Path was requested.
 type VisitedPath struct {
 	Path string
 	Date time.Time
+}
+
+func (vp *VisitedPath) MarshalJSON() ([]byte, error) {
+	fmtVp := struct {
+		Path string `json:"path"`
+		Date string `json:"date"`
+	}{
+		Path: vp.Path,
+		Date: vp.Date.Format(time.RFC3339),
+	}
+
+	return json.Marshal(fmtVp)
+}
+
+func (vp *VisitedPath) UnmarshalJSON(js []byte) error {
+	var strs map[string]string
+
+	err := json.Unmarshal(js, &strs)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range strs {
+		switch k {
+		case "path":
+			vp.Path = v
+		case "date":
+			ti, err := time.Parse(time.RFC3339, v)
+			if err != nil {
+				return err
+			}
+			vp.Date = ti
+		}
+	}
+
+	return nil
 }
 
 func (db *DB) CreateTableVisitedPath() error {

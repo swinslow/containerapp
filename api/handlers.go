@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/swinslow/containerapp/api/models"
 )
 
 func registerHandlers(router *mux.Router, env *Env) {
@@ -20,10 +22,20 @@ func (env *Env) rootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "Hello, path is %s<br><br>\n", r.URL.Path)
+	d := time.Now()
+	vp := models.VisitedPath{
+		Path: r.URL.Path,
+		Date: d,
+	}
+	js, err := json.Marshal(&vp)
+	if err != nil {
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	fmt.Fprintf(w, string(js))
 
 	// and add this one for future visits
-	err := env.db.AddVisitedPath(r.URL.Path, time.Now())
+	err = env.db.AddVisitedPath(r.URL.Path, d)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 	}
@@ -42,10 +54,12 @@ func (env *Env) historyHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-	fmt.Fprintf(w, "Previously visited paths:<br>\n<ul>\n")
-	for _, vp := range vpaths {
-		fDate := vp.Date.Format("2006-01-02 15:04:05 -0700 MST")
-		fmt.Fprintf(w, "<li>%s (%s)</li>\n", vp.Path, fDate)
+
+	// output as JSON
+	js, err := json.Marshal(vpaths)
+	if err != nil {
+		http.Error(w, http.StatusText(500), 500)
+		return
 	}
-	fmt.Fprintf(w, "</ul>\n")
+	fmt.Fprintf(w, string(js))
 }

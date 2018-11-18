@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -95,5 +96,55 @@ func TestShouldAddVisitedPath(t *testing.T) {
 	err = mock.ExpectationsWereMet()
 	if err != nil {
 		t.Errorf("unfulfilled expectations: %v", err)
+	}
+}
+
+// JSON marshalling and unmarshalling
+func TestVisitedPathCanMarshalToJSON(t *testing.T) {
+	vp := &VisitedPath{
+		Path: "/abc",
+		Date: time.Date(2018, time.November, 17, 0, 0, 0, 0, time.UTC),
+	}
+
+	js, err := json.Marshal(vp)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	// read back in as string-string map
+	var strs map[string]string
+	err = json.Unmarshal(js, &strs)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	// check for expected length and values
+	if len(strs) != 2 {
+		t.Fatalf("expected len %d, got %d", 2, len(strs))
+	}
+	if strs["path"] != "/abc" {
+		t.Errorf("expected %s, got %s", "/abc", strs["path"])
+	}
+	if strs["date"] != "2018-11-17T00:00:00Z" {
+		t.Errorf("expected %s, got %s", "2018-11-17T00:00:00Z", strs["date"])
+	}
+}
+
+func TestVisitedPathCanUnmarshalFromJSON(t *testing.T) {
+	vp := &VisitedPath{}
+	js := []byte(`{"path":"/def", "date":"2018-11-17T20:43:00Z"}`)
+
+	err := json.Unmarshal(js, vp)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	// check values
+	if vp.Path != "/def" {
+		t.Errorf("expected %v, got %v", "/def", vp.Path)
+	}
+	wantDate := time.Date(2018, time.November, 17, 20, 43, 0, 0, time.UTC)
+	if vp.Date != wantDate {
+		t.Errorf("expected %v, got %v", wantDate, vp.Date)
 	}
 }
