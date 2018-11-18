@@ -1,40 +1,59 @@
 import React, { Component } from 'react';
-import ButtonExampleEmphasis from './ButtonExampleEmphasis';
-import HistoryTable from './HistoryTable';
-import logo from './logo.svg';
+import axios from 'axios';
 import 'semantic-ui-css/semantic.min.css';
+import { Button } from 'semantic-ui-react';
+
+import HistoryTable from './HistoryTable';
 import './App.css';
+
+const APIROOT = 'http://localhost:3005'
 
 class App extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      ready: true,
-      history: [
-        {"path": "/abc", "date": "2018-11-17T21:55:00Z"},
-        {"path": "/def", "date": "2018-11-16T15:22:00Z"},
-        {"path": "/ghi", "date": "2018-11-15T00:00:00Z"}
-      ]
+      ready: false,
+      history: []
     }
+  }
+
+  componentDidMount() {
+    // set bindings
+    this.handleRefresh = this.handleRefresh.bind(this)
+
+    // load history for the first time
+    this.refreshHistory()
+  }
+
+  handleRefresh = (e) => {
+    this.refreshHistory();
+  }
+
+  refreshHistory() {
+    // call to retrieve JSON and update state
+    const historyEndpoint = APIROOT + '/history';
+    axios.get(historyEndpoint)
+      .then(res => {
+        const history = res.data;
+        const ready = true;
+        this.setState({ready, history});
+      })
+      .catch(err => {
+        // const errorFlag = true;
+        // const errorMsg = "Couldn't load list of projects";
+        // this.setState({errorFlag, errorMsg});
+        const ready = false;
+        this.setState({ready});
+      });
   }
 
   render() {
     return (
       <div className="App">
         <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h1>Hello!</h1>
+          <div>History <Button onClick={this.handleRefresh} icon='refresh' /></div>
           <HistoryTable ready={this.state.ready} history={this.state.history} />
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a><br />
-          <ButtonExampleEmphasis />
         </header>
       </div>
     );
