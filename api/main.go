@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
 	"github.com/swinslow/containerapp/api/models"
@@ -33,8 +34,16 @@ func main() {
 
 	registerHandlers(router, env)
 
+	// set up CORS
+	headers := []string{"X-Requested-With", "Content-Type", "Authorization"}
+	methods := []string{"GET", "POST", "PUT", "HEAD", "OPTIONS"}
+	origins := []string{"http://localhost:3000"}
+
 	fmt.Println("Listening on :" + WEBPORT)
-	log.Fatal(http.ListenAndServe(":"+WEBPORT, router))
+	log.Fatal(http.ListenAndServe(":"+WEBPORT, handlers.CORS(
+		handlers.AllowedHeaders(headers),
+		handlers.AllowedMethods(methods),
+		handlers.AllowedOrigins(origins))(router)))
 }
 
 // ===== environment setup =====
