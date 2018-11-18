@@ -155,3 +155,17 @@ func TestCannotPostHistoryHandler(t *testing.T) {
 		t.Errorf("Expected %d, got %d", 405, rec.Code)
 	}
 }
+
+func TestIgnoreHandler(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/favicon.ico", nil)
+
+	db := &mockDB{}
+	env := Env{db: db}
+	http.HandlerFunc(env.ignoreHandler).ServeHTTP(rec, req)
+
+	// check that we got a 404
+	if 404 != rec.Code {
+		t.Errorf("Expected %d, got %d", 404, rec.Code)
+	}
+}

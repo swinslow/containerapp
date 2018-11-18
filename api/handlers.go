@@ -11,6 +11,7 @@ import (
 )
 
 func registerHandlers(router *mux.Router, env *Env) {
+	router.HandleFunc("/favicon.ico", env.ignoreHandler).Methods("GET")
 	router.HandleFunc("/history", env.historyHandler).Methods("GET")
 	router.HandleFunc("/{rest:.*}", env.rootHandler).Methods("GET")
 }
@@ -62,4 +63,8 @@ func (env *Env) historyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, string(js))
+}
+
+func (env *Env) ignoreHandler(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, http.StatusText(404), 404)
 }
