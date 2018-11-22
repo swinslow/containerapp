@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"encoding/json"
@@ -11,7 +11,9 @@ import (
 	"github.com/swinslow/containerapp/api/models"
 )
 
-func registerHandlers(router *mux.Router, env *Env) {
+// RegisterHandlers registers the api handler endpoints with the
+// specified router, for the given environment.
+func (env *Env) RegisterHandlers(router *mux.Router) {
 	router.HandleFunc("/favicon.ico", env.ignoreHandler).Methods("GET")
 	router.HandleFunc("/admin/history", env.historyHandler).Methods("GET")
 	router.HandleFunc("/oauth/getToken", env.createTokenHandler).Methods("POST")
