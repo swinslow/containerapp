@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/swinslow/containerapp/api/models"
 )
 
@@ -390,5 +392,158 @@ func TestCannotPostCreateTokenHandlerWithoutEmailValue(t *testing.T) {
 
 	if _, ok := rj["error"]; !ok {
 		t.Errorf("expected error, got no error key")
+	}
+}
+
+// ===== test middleware =====
+
+// sample handler for testing middleware
+func (env *Env) testHandler(w http.ResponseWriter, r *http.Request) {
+	if userEmail := r.Context().Value(emailContextKey(0)).(string); userEmail != "" {
+		fmt.Fprintf(w, "got %s from context", userEmail)
+	} else {
+		fmt.Fprintf(w, `couldn't get context`)
+	}
+}
+
+func TestCanValidateTokenMiddleware(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/testRoute", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	// create token with testing key and set header
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"email": "janedoe@example.com",
+	})
+	tokenString, err := token.SignedString([]byte("keyForTesting"))
+	if err != nil {
+		t.Fatalf("couldn't create token for testing: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	db := &mockDB{}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+	wrappedHandler := env.validateTokenMiddleware(env.testHandler)
+	http.HandlerFunc(wrappedHandler).ServeHTTP(rec, req)
+
+	// check that we got a 200 (OK)
+	if 200 != rec.Code {
+		t.Errorf("Expected %d, got %d", 200, rec.Code)
+	}
+
+	wantString := "got janedoe@example.com from context"
+	if rec.Body.String() != wantString {
+		t.Errorf("expected %s, got %s", wantString, rec.Body.String())
+	}
+}
+
+func TestCannotValidateTokenWithNoAuthHeader(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/testRoute", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	db := &mockDB{}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+	wrappedHandler := env.validateTokenMiddleware(env.testHandler)
+	http.HandlerFunc(wrappedHandler).ServeHTTP(rec, req)
+
+	// check that we got a 401 (Unauthorized)
+	if 401 != rec.Code {
+		t.Errorf("Expected %d, got %d", 401, rec.Code)
+	}
+
+	// check that we got a WWW-Authenticate header
+	// (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401)
+	header := rec.Result().Header
+	wantHeader := "Bearer"
+	gotHeader := header.Get("WWW-Authenticate")
+	if gotHeader != wantHeader {
+		t.Errorf("expected %v, got %v", wantHeader, gotHeader)
+	}
+
+	wantBody := `{"error": "Authentication header with valid Bearer token required"}`
+	if rec.Body.String() != wantBody {
+		t.Errorf("expected %s, got %s", wantBody, rec.Body.String())
+	}
+}
+
+func TestCannotValidateTokenWithInvalidAuthHeaders(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/testRoute", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	// set an invalid JWT token value
+	req.Header.Set("Authorization", "Bearer BLAHinvalid")
+
+	db := &mockDB{}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+	wrappedHandler := env.validateTokenMiddleware(env.testHandler)
+	http.HandlerFunc(wrappedHandler).ServeHTTP(rec, req)
+
+	// check that we got a 401 (Unauthorized)
+	if 401 != rec.Code {
+		t.Errorf("Expected %d, got %d", 401, rec.Code)
+	}
+
+	// check that we got a WWW-Authenticate header
+	// (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401)
+	header := rec.Result().Header
+	wantHeader := "Bearer"
+	gotHeader := header.Get("WWW-Authenticate")
+	if gotHeader != wantHeader {
+		t.Errorf("expected %v, got %v", wantHeader, gotHeader)
+	}
+
+	wantBody := `{"error": "Authentication header with valid Bearer token required"}`
+	if rec.Body.String() != wantBody {
+		t.Errorf("expected %s, got %s", wantBody, rec.Body.String())
+	}
+}
+
+func TestCannotValidateTokenWithNoBearerInHeader(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/testRoute", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	// create token with testing key and set header
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"email": "janedoe@example.com",
+	})
+	tokenString, err := token.SignedString([]byte("keyForTesting"))
+	if err != nil {
+		t.Fatalf("couldn't create token for testing: %v", err)
+	}
+	req.Header.Set("Authorization", tokenString)
+
+	db := &mockDB{}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+	wrappedHandler := env.validateTokenMiddleware(env.testHandler)
+	http.HandlerFunc(wrappedHandler).ServeHTTP(rec, req)
+
+	// check that we got a 401 (Unauthorized)
+	if 401 != rec.Code {
+		t.Errorf("Expected %d, got %d", 401, rec.Code)
+	}
+
+	// check that we got a WWW-Authenticate header
+	// (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401)
+	header := rec.Result().Header
+	wantHeader := "Bearer"
+	gotHeader := header.Get("WWW-Authenticate")
+	if gotHeader != wantHeader {
+		t.Errorf("expected %v, got %v", wantHeader, gotHeader)
+	}
+
+	wantBody := `{"error": "Authentication header with valid Bearer token required"}`
+	if rec.Body.String() != wantBody {
+		t.Errorf("expected %s, got %s", wantBody, rec.Body.String())
 	}
 }
