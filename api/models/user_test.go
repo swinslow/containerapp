@@ -54,50 +54,91 @@ func TestShouldGetAllUsers(t *testing.T) {
 
 }
 
-// func TestShouldGetUserByID(t *testing.T) {
-// 	// set up mock
-// 	sqldb, mock, err := sqlmock.New()
-// 	if err != nil {
-// 		t.Fatalf("got error when creating db mock: %v", err)
-// 	}
-// 	defer sqldb.Close()
-// 	db := DB{sqldb: sqldb}
+func TestShouldGetUserByID(t *testing.T) {
+	// set up mock
+	sqldb, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("got error when creating db mock: %v", err)
+	}
+	defer sqldb.Close()
+	db := DB{sqldb: sqldb}
 
-// 	sentRows := sqlmock.NewRows([]string{"id", "email", "name", "is_admin"}).
-// 		AddRow(8103918, "janedoe@example.com", "Jane Doe", true)
-// 	mock.ExpectQuery("SELECT id, email, name, is_admin FROM users WHERE id = $1").WillReturnRows(sentRows)
+	sentRows := sqlmock.NewRows([]string{"id", "email", "name", "is_admin"}).
+		AddRow(8103918, "janedoe@example.com", "Jane Doe", true)
+	mock.ExpectQuery(`[SELECT id, email, name, is_admin FROM users WHERE id = \$1]`).
+		WithArgs(8103918).
+		WillReturnRows(sentRows)
 
-// 	// run the tested function
-// 	gotRows, err := db.GetUserByID()
-// 	if err != nil {
-// 		t.Fatalf("expected nil error, got %v", err)
-// 	}
+	// run the tested function
+	user, err := db.GetUserByID(8103918)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
 
-// 	// check sqlmock expectations
-// 	err = mock.ExpectationsWereMet()
-// 	if err != nil {
-// 		t.Errorf("unfulfilled expectations: %v", err)
-// 	}
+	// check sqlmock expectations
+	err = mock.ExpectationsWereMet()
+	if err != nil {
+		t.Errorf("unfulfilled expectations: %v", err)
+	}
 
-// 	// and check returned values
-// 	if len(gotRows) != 2 {
-// 		t.Fatalf("expected len %d, got %d", 2, len(gotRows))
-// 	}
-// 	user0 := gotRows[0]
-// 	if user0.ID != 410952 {
-// 		t.Errorf("expected %v, got %v", 410952, user0.ID)
-// 	}
-// 	if user0.Email != "johndoe@example.com" {
-// 		t.Errorf("expected %v, got %v", "johndoe@example.com", user0.Email)
-// 	}
-// 	if user0.Name != "John Doe" {
-// 		t.Errorf("expected %v, got %v", "John Doe", user0.Name)
-// 	}
-// 	if user0.IsAdmin != false {
-// 		t.Errorf("expected %v, got %v", false, user0.IsAdmin)
-// 	}
+	// and check returned values
+	if user.ID != 8103918 {
+		t.Errorf("expected %v, got %v", 8103918, user.ID)
+	}
+	if user.Email != "janedoe@example.com" {
+		t.Errorf("expected %v, got %v", "janedoe@example.com", user.Email)
+	}
+	if user.Name != "Jane Doe" {
+		t.Errorf("expected %v, got %v", "Jane Doe", user.Name)
+	}
+	if user.IsAdmin != true {
+		t.Errorf("expected %v, got %v", true, user.IsAdmin)
+	}
 
-// }
+}
+
+func TestShouldGetUserByEmail(t *testing.T) {
+	// set up mock
+	sqldb, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("got error when creating db mock: %v", err)
+	}
+	defer sqldb.Close()
+	db := DB{sqldb: sqldb}
+
+	sentRows := sqlmock.NewRows([]string{"id", "email", "name", "is_admin"}).
+		AddRow(8103918, "janedoe@example.com", "Jane Doe", true)
+	mock.ExpectQuery(`[SELECT id, email, name, is_admin FROM users WHERE email = \$1]`).
+		WithArgs("janedoe@example.com").
+		WillReturnRows(sentRows)
+
+	// run the tested function
+	user, err := db.GetUserByEmail("janedoe@example.com")
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	// check sqlmock expectations
+	err = mock.ExpectationsWereMet()
+	if err != nil {
+		t.Errorf("unfulfilled expectations: %v", err)
+	}
+
+	// and check returned values
+	if user.ID != 8103918 {
+		t.Errorf("expected %v, got %v", 8103918, user.ID)
+	}
+	if user.Email != "janedoe@example.com" {
+		t.Errorf("expected %v, got %v", "janedoe@example.com", user.Email)
+	}
+	if user.Name != "Jane Doe" {
+		t.Errorf("expected %v, got %v", "Jane Doe", user.Name)
+	}
+	if user.IsAdmin != true {
+		t.Errorf("expected %v, got %v", true, user.IsAdmin)
+	}
+
+}
 
 func TestShouldAddUser(t *testing.T) {
 	// set up mock

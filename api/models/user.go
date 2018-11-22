@@ -49,6 +49,30 @@ func (db *DB) GetAllUsers() ([]*User, error) {
 	return users, nil
 }
 
+// GetUserByID returns the registered user with the given ID, or nil if
+// not found.
+func (db *DB) GetUserByID(id uint32) (*User, error) {
+	var user User
+	err := db.sqldb.QueryRow("SELECT id, email, name, is_admin FROM users WHERE id = $1", id).
+		Scan(&user.ID, &user.Email, &user.Name, &user.IsAdmin)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// GetUserByEmail returns the registered user with the given ID, or nil if
+// not found.
+func (db *DB) GetUserByEmail(email string) (*User, error) {
+	var user User
+	err := db.sqldb.QueryRow("SELECT id, email, name, is_admin FROM users WHERE email = $1", email).
+		Scan(&user.ID, &user.Email, &user.Name, &user.IsAdmin)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 // AddUser adds a user to the database.
 // Due to PostgreSQL limits on integer size, id must be less than 2147483647.
 // It should typically be created via math/rand's Int31() function and then
