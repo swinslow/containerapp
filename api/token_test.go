@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/swinslow/containerapp/api/models"
 )
 
 func TestCanPostCreateTokenHandler(t *testing.T) {
@@ -157,10 +158,11 @@ func TestCannotPostCreateTokenHandlerWithoutEmailValue(t *testing.T) {
 
 // sample handler for testing middleware
 func (env *Env) testHandler(w http.ResponseWriter, r *http.Request) {
-	if userEmail := r.Context().Value(emailContextKey(0)).(string); userEmail != "" {
-		fmt.Fprintf(w, "got %s from context", userEmail)
+	w.Header().Set("Content-Type", "application/json")
+	if user := r.Context().Value(userContextKey(0)).(*models.User); user != nil && user.ID != 0 {
+		fmt.Fprintf(w, `{"email": "%s", "id": %d}`, user.Email, user.ID)
 	} else {
-		fmt.Fprintf(w, `couldn't get context`)
+		fmt.Fprintf(w, `{"error": "couldn't get context"}`)
 	}
 }
 
@@ -191,9 +193,57 @@ func TestCanValidateTokenMiddleware(t *testing.T) {
 		t.Errorf("Expected %d, got %d", 200, rec.Code)
 	}
 
-	wantString := "got janedoe@example.com from context"
+	// check that content type was application/json
+	header := rec.Result().Header
+	if header.Get("Content-Type") != "application/json" {
+		t.Errorf("expected %v, got %v", "application/json", header.Get("Content-Type"))
+	}
+
+	wantString := `{"email": "janedoe@example.com", "id": 914611345}`
 	if rec.Body.String() != wantString {
 		t.Errorf("expected %s, got %s", wantString, rec.Body.String())
+	}
+}
+
+func TestCanValidateTokenMiddlewareForUnknownEmailButIDIsZero(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/testRoute", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	// create token with testing key and set header
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"email": "unknown@example.com",
+	})
+	tokenString, err := token.SignedString([]byte("keyForTesting"))
+	if err != nil {
+		t.Fatalf("couldn't create token for testing: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	db := &mockDB{}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+	wrappedHandler := env.validateTokenMiddleware(env.testHandler)
+	http.HandlerFunc(wrappedHandler).ServeHTTP(rec, req)
+
+	// check that we got a 401 (Unauthorized)
+	if 401 != rec.Code {
+		t.Errorf("Expected %d, got %d", 401, rec.Code)
+	}
+
+	// check that we got a WWW-Authenticate header
+	// (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401)
+	header := rec.Result().Header
+	wantHeader := "Bearer"
+	gotHeader := header.Get("WWW-Authenticate")
+	if gotHeader != wantHeader {
+		t.Errorf("expected %v, got %v", wantHeader, gotHeader)
+	}
+
+	wantBody := `{"error": "unknown user unknown@example.com"}`
+	if rec.Body.String() != wantBody {
+		t.Errorf("expected %s, got %s", wantBody, rec.Body.String())
 	}
 }
 

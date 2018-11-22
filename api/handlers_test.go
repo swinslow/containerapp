@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -32,6 +33,34 @@ func (mdb *mockDB) GetAllUsers() ([]*models.User, error) {
 		IsAdmin: true,
 	})
 	return users, nil
+}
+
+func (mdb *mockDB) GetUserByID(id uint32) (*models.User, error) {
+	users, err := mdb.GetAllUsers()
+	if err != nil {
+		return nil, err
+	}
+	for _, user := range users {
+		if user.ID == id {
+			return user, nil
+		}
+	}
+	// not found
+	return nil, fmt.Errorf("user not found")
+}
+
+func (mdb *mockDB) GetUserByEmail(email string) (*models.User, error) {
+	users, err := mdb.GetAllUsers()
+	if err != nil {
+		return nil, err
+	}
+	for _, user := range users {
+		if user.Email == email {
+			return user, nil
+		}
+	}
+	// not found
+	return nil, fmt.Errorf("user not found")
 }
 
 func (mdb *mockDB) AddUser(id uint32, email string, name string, isAdmin bool) error {

@@ -14,6 +14,8 @@ import (
 type Datastore interface {
 	// Users
 	GetAllUsers() ([]*User, error)
+	GetUserByID(id uint32) (*User, error)
+	GetUserByEmail(email string) (*User, error)
 	AddUser(uint32, string, string, bool) error
 	// VisitedPaths
 	GetAllVisitedPaths() ([]*VisitedPath, error)
