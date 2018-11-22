@@ -56,7 +56,7 @@ class App extends Component {
 
   refreshHistory() {
     // call to retrieve JSON and update state
-    const historyEndpoint = APIROOT + '/history';
+    const historyEndpoint = APIROOT + '/admin/history';
     axios.get(historyEndpoint)
       .then(res => {
         const history = res.data;

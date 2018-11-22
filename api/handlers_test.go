@@ -277,7 +277,7 @@ func TestCannotPostRootHandler(t *testing.T) {
 
 func TestCanGetHistory(t *testing.T) {
 	rec := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/history", nil)
+	req, err := http.NewRequest("GET", "/admin/history", nil)
 	if err != nil {
 		t.Fatalf("got non-nil error: %v", err)
 	}
@@ -345,7 +345,7 @@ func TestCanGetHistory(t *testing.T) {
 
 func TestCannotGetHistoryWithNoUserInContext(t *testing.T) {
 	rec := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/history", nil)
+	req, err := http.NewRequest("GET", "/admin/history", nil)
 	if err != nil {
 		t.Fatalf("got non-nil error: %v", err)
 	}
@@ -360,7 +360,7 @@ func TestCannotGetHistoryWithNoUserInContext(t *testing.T) {
 
 func TestCannotGetHistoryWithoutValidUserInContext(t *testing.T) {
 	rec := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/history", nil)
+	req, err := http.NewRequest("GET", "/admin/history", nil)
 	if err != nil {
 		t.Fatalf("got non-nil error: %v", err)
 	}
@@ -385,7 +385,7 @@ func TestCannotGetHistoryWithoutValidUserInContext(t *testing.T) {
 
 func TestCannotGetHistoryWithoutAdmindUserInContext(t *testing.T) {
 	rec := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/history", nil)
+	req, err := http.NewRequest("GET", "/admin/history", nil)
 	if err != nil {
 		t.Fatalf("got non-nil error: %v", err)
 	}
@@ -423,7 +423,7 @@ func TestCannotGetHistoryWithoutAdmindUserInContext(t *testing.T) {
 
 func TestCannotPostHistoryHandler(t *testing.T) {
 	rec := httptest.NewRecorder()
-	req, err := http.NewRequest("POST", "/history", nil)
+	req, err := http.NewRequest("POST", "/admin/history", nil)
 	if err != nil {
 		t.Fatalf("got non-nil error: %v", err)
 	}

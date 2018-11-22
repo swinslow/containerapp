@@ -20,7 +20,7 @@ func TestCanPostCreateTokenHandler(t *testing.T) {
 	// for now, though, we'll just trust whatever email address they send
 	data := url.Values{}
 	data.Set("email", "janedoe@example.com")
-	req, err := http.NewRequest("POST", "/getToken", strings.NewReader(data.Encode()))
+	req, err := http.NewRequest("POST", "/oauth/getToken", strings.NewReader(data.Encode()))
 	if err != nil {
 		t.Fatalf("got non-nil error: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestCanPostCreateTokenHandler(t *testing.T) {
 
 func TestCannotGetCreateTokenHandler(t *testing.T) {
 	rec := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/getToken", nil)
+	req, err := http.NewRequest("GET", "/oauth/getToken", nil)
 	if err != nil {
 		t.Fatalf("got non-nil error: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestCannotPostCreateTokenHandlerWithEmptyEmailString(t *testing.T) {
 	rec := httptest.NewRecorder()
 	data := url.Values{}
 	data.Set("email", "")
-	req, err := http.NewRequest("POST", "/getToken", strings.NewReader(data.Encode()))
+	req, err := http.NewRequest("POST", "/oauth/getToken", strings.NewReader(data.Encode()))
 	if err != nil {
 		t.Fatalf("got non-nil error: %v", err)
 	}
@@ -118,7 +118,7 @@ func TestCannotPostCreateTokenHandlerWithEmptyEmailString(t *testing.T) {
 
 func TestCannotPostCreateTokenHandlerWithoutEmailValue(t *testing.T) {
 	rec := httptest.NewRecorder()
-	req, err := http.NewRequest("POST", "/getToken", nil)
+	req, err := http.NewRequest("POST", "/oauth/getToken", nil)
 	if err != nil {
 		t.Fatalf("got non-nil error: %v", err)
 	}

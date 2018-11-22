@@ -13,8 +13,8 @@ import (
 
 func registerHandlers(router *mux.Router, env *Env) {
 	router.HandleFunc("/favicon.ico", env.ignoreHandler).Methods("GET")
-	router.HandleFunc("/history", env.historyHandler).Methods("GET")
-	router.HandleFunc("/getToken", env.createTokenHandler).Methods("POST")
+	router.HandleFunc("/admin/history", env.historyHandler).Methods("GET")
+	router.HandleFunc("/oauth/getToken", env.createTokenHandler).Methods("POST")
 	router.HandleFunc("/{rest:.*}", env.rootHandler).Methods("GET")
 }
 
