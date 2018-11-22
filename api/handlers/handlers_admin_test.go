@@ -347,6 +347,114 @@ func TestCannotGetUsersWithoutAdminUserInContext(t *testing.T) {
 }
 
 // ===== /admin/users POST route =====
+type mockNoUsersDB struct {
+	addedUsers []*models.User
+}
+
+func (mdb *mockNoUsersDB) GetAllUsers() ([]*models.User, error) {
+	users := make([]*models.User, 0)
+	return users, nil
+}
+
+func (mdb *mockNoUsersDB) GetUserByID(id uint32) (*models.User, error) {
+	return nil, nil
+}
+
+func (mdb *mockNoUsersDB) GetUserByEmail(email string) (*models.User, error) {
+	return nil, nil
+}
+
+func (mdb *mockNoUsersDB) AddUser(id uint32, email string, name string, isAdmin bool) error {
+	if mdb.addedUsers == nil {
+		mdb.addedUsers = make([]*models.User, 0)
+	}
+	mdb.addedUsers = append(mdb.addedUsers, &models.User{
+		ID:      id,
+		Email:   email,
+		Name:    name,
+		IsAdmin: isAdmin,
+	})
+	return nil
+}
+
+func (mdb *mockNoUsersDB) GetAllVisitedPaths() ([]*models.VisitedPath, error) {
+	return nil, nil
+}
+
+func (mdb *mockNoUsersDB) GetAllVisitedPathsForUserID(uint32) ([]*models.VisitedPath, error) {
+	return nil, nil
+}
+
+func (mdb *mockNoUsersDB) AddVisitedPath(p string, ti time.Time, userID uint32) error {
+	return nil
+}
+func TestCanPostNewAdminUserWithoutAuthIfNoUsers(t *testing.T) {
+	rec := httptest.NewRecorder()
+	body := `{"email": "steve@example.com", "name": "Steve"}`
+	req, err := http.NewRequest("POST", "/admin/users", strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	noUsersDb := &mockNoUsersDB{}
+	env := Env{db: noUsersDb, jwtSecretKey: "keyForTesting"}
+	// no user in context b/c brand new
+	http.HandlerFunc(env.newUserHandler).ServeHTTP(rec, req)
+
+	// check that we got a 201 (Created)
+	if 201 != rec.Code {
+		t.Errorf("Expected %d, got %d", 201, rec.Code)
+	}
+
+	// check that content type was application/json
+	header := rec.Result().Header
+	if header.Get("Content-Type") != "application/json" {
+		t.Errorf("expected %v, got %v", "application/json", header.Get("Content-Type"))
+	}
+
+	// check that the correct JSON strings were returned
+	// read back in as slice of Users
+	var newUser *models.User
+	err = json.Unmarshal([]byte(rec.Body.String()), &newUser)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	// don't check exact ID since it will be randomly generated
+	// just make sure it's greater than 0
+	if newUser.ID == 0 {
+		t.Errorf("expected non-zero ID, got 0")
+	}
+	if newUser.Email != "steve@example.com" {
+		t.Errorf("expected %v, got %v", "steve@example.com", newUser.Email)
+	}
+	if newUser.Name != "Steve" {
+		t.Errorf("expected %v, got %v", "Steve", newUser.Name)
+	}
+	// AND this time it'll be an admin user since we're bootstrapping
+	if newUser.IsAdmin != true {
+		t.Errorf("expected %v, got %v", true, newUser.IsAdmin)
+	}
+
+	// and make sure that a new user was saved to database
+	if len(noUsersDb.addedUsers) != 1 {
+		t.Fatalf("expected 1 added user, got 0")
+	}
+	userCheck := noUsersDb.addedUsers[0]
+	if userCheck.ID != newUser.ID {
+		t.Errorf("expected same IDs, userCheck is %v, newUser is %v", userCheck.ID, newUser.ID)
+	}
+	if userCheck.Email != newUser.Email {
+		t.Errorf("expected same email, userCheck is %v, newUser is %v", userCheck.Email, newUser.Email)
+	}
+	if userCheck.Name != newUser.Name {
+		t.Errorf("expected same name, userCheck is %v, newUser is %v", userCheck.Name, newUser.Name)
+	}
+	if userCheck.IsAdmin != newUser.IsAdmin {
+		t.Errorf("expected same admin status, userCheck is %v, newUser is %v", userCheck.IsAdmin, newUser.IsAdmin)
+	}
+
+}
 
 func TestAdminCanPostNewUser(t *testing.T) {
 	rec := httptest.NewRecorder()

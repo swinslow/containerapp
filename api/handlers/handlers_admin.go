@@ -110,6 +110,8 @@ type newUserReq struct {
 }
 
 func (env *Env) newUserHandler(w http.ResponseWriter, r *http.Request) {
+	setToAdmin := false
+
 	// send JSON responses
 	w.Header().Set("Content-Type", "application/json")
 
@@ -119,9 +121,20 @@ func (env *Env) newUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := extractAdminUser(w, r)
-	if user == nil {
-		return
+	// see if this is a brand new, uninitialized database -- in other
+	// words, if it has no users. if so, we'll create the first user
+	// even though there's no auth (because they can't auth yet!)
+	// FIXME in a production system, this is a dumb way to pick the
+	// FIXME first admin user.
+	if users, err := env.db.GetAllUsers(); err == nil && len(users) == 0 {
+		// new database, so skip the admin check.
+		// also flag that the new user should be an admin.
+		setToAdmin = true
+	} else {
+		user := extractAdminUser(w, r)
+		if user == nil {
+			return
+		}
 	}
 
 	// once we're here, we're talking to an admin user
@@ -135,7 +148,7 @@ func (env *Env) newUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// make sure this user doesn't already exist in database
-	if userCheck, err := env.db.GetUserByEmail(newUser.Email); err == nil || userCheck != nil {
+	if userCheck, err := env.db.GetUserByEmail(newUser.Email); err == nil && userCheck != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, `{"error": "user with email %s already exists"}`, newUser.Email)
 		return
@@ -156,7 +169,7 @@ func (env *Env) newUserHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		utestID := uint32(testID)
 		// check this ID doesn't already exist in database
-		if userCheck, err := env.db.GetUserByID(utestID); err == nil || userCheck != nil {
+		if userCheck, err := env.db.GetUserByID(utestID); err == nil && userCheck != nil {
 			continue
 		}
 		// if we get here, it's good to use
@@ -169,7 +182,7 @@ func (env *Env) newUserHandler(w http.ResponseWriter, r *http.Request) {
 	// FIXME ID as available above, and then both try to save them here.
 	// FIXME This will be prevented by the database, presumably, but it
 	// FIXME should be addressed in a real production system.
-	err = env.db.AddUser(newID, newUser.Email, newUser.Name, false)
+	err = env.db.AddUser(newID, newUser.Email, newUser.Name, setToAdmin)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, `{"error": "server error saving new user, please check values and try again"}`)
@@ -181,7 +194,7 @@ func (env *Env) newUserHandler(w http.ResponseWriter, r *http.Request) {
 		ID:      newID,
 		Email:   newUser.Email,
 		Name:    newUser.Name,
-		IsAdmin: false,
+		IsAdmin: setToAdmin,
 	}
 	w.WriteHeader(http.StatusCreated)
 	js, err := json.Marshal(finalUser)
