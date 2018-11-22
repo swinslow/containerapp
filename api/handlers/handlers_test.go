@@ -96,7 +96,7 @@ func TestCanGetRootHandler(t *testing.T) {
 	}
 
 	db := &mockDB{}
-	env := Env{db: db}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
 	http.HandlerFunc(env.rootHandler).ServeHTTP(rec, req)
 
 	// check that we got a 200 (OK)
@@ -144,7 +144,7 @@ func TestCannotPostRootHandler(t *testing.T) {
 	}
 
 	db := &mockDB{}
-	env := Env{db: db}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
 	http.HandlerFunc(env.rootHandler).ServeHTTP(rec, req)
 
 	// check that we got a 405
@@ -166,7 +166,7 @@ func TestCanGetHistory(t *testing.T) {
 	}
 
 	db := &mockDB{}
-	env := Env{db: db}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
 	http.HandlerFunc(env.historyHandler).ServeHTTP(rec, req)
 
 	// check that we got a 200 (OK)
@@ -226,7 +226,7 @@ func TestCannotPostHistoryHandler(t *testing.T) {
 	}
 
 	db := &mockDB{}
-	env := Env{db: db}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
 	http.HandlerFunc(env.rootHandler).ServeHTTP(rec, req)
 
 	// check that we got a 405
@@ -243,7 +243,7 @@ func TestIgnoreHandler(t *testing.T) {
 	}
 
 	db := &mockDB{}
-	env := Env{db: db}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
 	http.HandlerFunc(env.ignoreHandler).ServeHTTP(rec, req)
 
 	// check that we got a 404
@@ -267,7 +267,7 @@ func TestCanPostCreateTokenHandler(t *testing.T) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	db := &mockDB{}
-	env := Env{db: db}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
 	http.HandlerFunc(env.createTokenHandler).ServeHTTP(rec, req)
 
 	// check that we got a 200 (OK)
@@ -306,7 +306,7 @@ func TestCannotGetCreateTokenHandler(t *testing.T) {
 	}
 
 	db := &mockDB{}
-	env := Env{db: db}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
 	http.HandlerFunc(env.createTokenHandler).ServeHTTP(rec, req)
 
 	// check that we got a 405
@@ -325,7 +325,7 @@ func TestCannotPostCreateTokenHandlerWithEmptyEmailString(t *testing.T) {
 	}
 
 	db := &mockDB{}
-	env := Env{db: db}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
 	http.HandlerFunc(env.createTokenHandler).ServeHTTP(rec, req)
 
 	// check that we got a 400 (Bad Request)
@@ -363,7 +363,7 @@ func TestCannotPostCreateTokenHandlerWithoutEmailValue(t *testing.T) {
 	}
 
 	db := &mockDB{}
-	env := Env{db: db}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
 	http.HandlerFunc(env.createTokenHandler).ServeHTTP(rec, req)
 
 	// check that we got a 400 (Bad Request)
