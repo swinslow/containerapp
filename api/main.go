@@ -14,7 +14,8 @@ import (
 
 // Env is the environment for the web handlers.
 type Env struct {
-	db models.Datastore
+	db           models.Datastore
+	jwtSecretKey string
 }
 
 func main() {
@@ -49,6 +50,7 @@ func main() {
 // ===== environment setup =====
 
 func setupEnv() (*Env, error) {
+	// set up datastore
 	db, err := models.NewDB("host=db sslmode=disable dbname=dev user=postgres-dev")
 	if err != nil {
 		return nil, err
@@ -59,6 +61,15 @@ func setupEnv() (*Env, error) {
 		return nil, err
 	}
 
-	env := &Env{db}
+	// set up JWT secret key (from environment)
+	JWTSECRETKEY := os.Getenv("JWTSECRETKEY")
+	if JWTSECRETKEY == "" {
+		return nil, fmt.Errorf("No secret key found; set environment variable JWTSECRETKEY before starting")
+	}
+
+	env := &Env{
+		db:           db,
+		jwtSecretKey: JWTSECRETKEY,
+	}
 	return env, nil
 }
