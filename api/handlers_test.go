@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -113,6 +114,35 @@ func (mdb *mockDB) AddVisitedPath(p string, ti time.Time, userID uint32) error {
 	return nil
 }
 
+// ===== helpers for tests
+
+func confirmRecWasInvalidAuth(t *testing.T, rec *httptest.ResponseRecorder, es string) {
+	// check that we got a 401 (Unauthorized)
+	if 401 != rec.Code {
+		t.Errorf("Expected %d, got %d", 401, rec.Code)
+	}
+
+	// check that we got a WWW-Authenticate header
+	// (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401)
+	header := rec.Result().Header
+	wantHeader := "Bearer"
+	gotHeader := header.Get("WWW-Authenticate")
+	if gotHeader != wantHeader {
+		t.Errorf("expected %v, got %v", wantHeader, gotHeader)
+	}
+
+	// check that content type was application/json
+	if header.Get("Content-Type") != "application/json" {
+		t.Errorf("expected %v, got %v", "application/json", header.Get("Content-Type"))
+	}
+
+	// check that the right "error" JSON string was returned
+	wantString := `{"error": "` + es + `"}`
+	if rec.Body.String() != wantString {
+		t.Fatalf("expected %s, got %s", wantString, rec.Body.String())
+	}
+}
+
 // ===== test handlers =====
 
 func TestCanGetRootHandler(t *testing.T) {
@@ -124,6 +154,15 @@ func TestCanGetRootHandler(t *testing.T) {
 
 	db := &mockDB{}
 	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+
+	// add User to context (assumes validation has already occurred)
+	user, err := db.GetUserByEmail("janedoe@example.com")
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, userContextKey(0), user)
+	req = req.WithContext(ctx)
 	http.HandlerFunc(env.rootHandler).ServeHTTP(rec, req)
 
 	// check that we got a 200 (OK)
@@ -149,9 +188,9 @@ func TestCanGetRootHandler(t *testing.T) {
 		t.Errorf("expected %v, got %v", "/abc", vpGot.Path)
 	}
 	// don't check for exact date, b/c it'll vary per call
-	// FIXME for now, checking for hard-coded user id
-	if vpGot.UserID != 1001 {
-		t.Errorf("expected %v, got %v", 1001, vpGot.UserID)
+	// check for user ID from token
+	if vpGot.UserID != user.ID {
+		t.Errorf("expected %v, got %v", user.ID, vpGot.UserID)
 	}
 
 	// and check that AddVisitedPath was called
@@ -160,6 +199,57 @@ func TestCanGetRootHandler(t *testing.T) {
 	}
 	if db.addedVPs[0].Path != "/abc" {
 		t.Errorf("expected %v, got %v", "/abc", db.addedVPs[0].Path)
+	}
+}
+
+func TestCannotGetRootHandlerWithoutValidUserInContext(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/abc", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	db := &mockDB{}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+
+	// add User with ID 0 to context (unknown user)
+	user := &models.User{
+		ID:      0,
+		Email:   "unknown@example.com",
+		Name:    "",
+		IsAdmin: false,
+	}
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, userContextKey(0), user)
+	req = req.WithContext(ctx)
+	http.HandlerFunc(env.rootHandler).ServeHTTP(rec, req)
+
+	confirmRecWasInvalidAuth(t, rec, "unknown user unknown@example.com")
+
+	// and check that AddVisitedPath was not called
+	if len(db.addedVPs) != 0 {
+		t.Errorf("expected len %d, got %d", 0, len(db.addedVPs))
+	}
+}
+
+func TestCannotGetRootHandlerWithNoUserInContext(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/abc", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	db := &mockDB{}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+
+	// not adding any User to context
+	http.HandlerFunc(env.rootHandler).ServeHTTP(rec, req)
+
+	confirmRecWasInvalidAuth(t, rec, "Authentication header with valid Bearer token required")
+
+	// and check that AddVisitedPath was not called
+	if len(db.addedVPs) != 0 {
+		t.Errorf("expected len %d, got %d", 0, len(db.addedVPs))
 	}
 }
 
@@ -194,6 +284,14 @@ func TestCanGetHistory(t *testing.T) {
 
 	db := &mockDB{}
 	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+	// add admin User to context (assumes validation has already occurred)
+	user, err := db.GetUserByEmail("janedoe@example.com")
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, userContextKey(0), user)
+	req = req.WithContext(ctx)
 	http.HandlerFunc(env.historyHandler).ServeHTTP(rec, req)
 
 	// check that we got a 200 (OK)
@@ -242,6 +340,84 @@ func TestCanGetHistory(t *testing.T) {
 	}
 	if vp2.UserID != 847102 {
 		t.Errorf("expected %v, got %v", 847102, vp2.UserID)
+	}
+}
+
+func TestCannotGetHistoryWithNoUserInContext(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/history", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	db := &mockDB{}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+	// not adding any User to context
+	http.HandlerFunc(env.historyHandler).ServeHTTP(rec, req)
+
+	confirmRecWasInvalidAuth(t, rec, "Authentication header with valid Bearer token required")
+}
+
+func TestCannotGetHistoryWithoutValidUserInContext(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/history", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	db := &mockDB{}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+
+	// add User with ID 0 to context (unknown user)
+	user := &models.User{
+		ID:      0,
+		Email:   "unknown@example.com",
+		Name:    "",
+		IsAdmin: false,
+	}
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, userContextKey(0), user)
+	req = req.WithContext(ctx)
+	http.HandlerFunc(env.historyHandler).ServeHTTP(rec, req)
+
+	confirmRecWasInvalidAuth(t, rec, "unknown user unknown@example.com")
+}
+
+func TestCannotGetHistoryWithoutAdmindUserInContext(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/history", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	db := &mockDB{}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+
+	// add User with ID 0 to context (unknown user)
+	user, err := db.GetUserByEmail("johndoe@example.com")
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, userContextKey(0), user)
+	req = req.WithContext(ctx)
+	http.HandlerFunc(env.historyHandler).ServeHTTP(rec, req)
+
+	// check that we got a 403 (Forbidden)
+	if 403 != rec.Code {
+		t.Errorf("Expected %d, got %d", 403, rec.Code)
+	}
+
+	// check that content type was application/json
+	header := rec.Result().Header
+	if header.Get("Content-Type") != "application/json" {
+		t.Errorf("expected %v, got %v", "application/json", header.Get("Content-Type"))
+	}
+
+	// check that the right "error" JSON string was returned
+	wantString := `{"error": "admin access required"}`
+	if rec.Body.String() != wantString {
+		t.Fatalf("expected %s, got %s", wantString, rec.Body.String())
 	}
 }
 

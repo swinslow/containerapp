@@ -29,12 +29,28 @@ func (env *Env) rootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	d := time.Now()
-	// FIXME hard-coding ID for now
-	userID := uint32(1001)
+
+	// pull User from context
+	ctxCheck := r.Context().Value(userContextKey(0))
+	if ctxCheck == nil {
+		w.Header().Set("WWW-Authenticate", "Bearer")
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprintf(w, `{"error": "Authentication header with valid Bearer token required"}`)
+		return
+	}
+	user := ctxCheck.(*models.User)
+	if user.ID == 0 {
+		w.Header().Set("WWW-Authenticate", "Bearer")
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprintf(w, `{"error": "unknown user %s"}`, user.Email)
+		return
+	}
+
+	// authenticated, so proceed
 	vp := models.VisitedPath{
 		Path:   r.URL.Path,
 		Date:   d,
-		UserID: userID,
+		UserID: user.ID,
 	}
 	js, err := json.Marshal(&vp)
 	if err != nil {
@@ -44,7 +60,7 @@ func (env *Env) rootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, string(js))
 
 	// and add this one for future visits
-	err = env.db.AddVisitedPath(r.URL.Path, d, userID)
+	err = env.db.AddVisitedPath(r.URL.Path, d, user.ID)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 	}
@@ -57,6 +73,29 @@ func (env *Env) historyHandler(w http.ResponseWriter, r *http.Request) {
 	// we only take GET requests
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
+		return
+	}
+
+	// pull User from context
+	ctxCheck := r.Context().Value(userContextKey(0))
+	if ctxCheck == nil {
+		w.Header().Set("WWW-Authenticate", "Bearer")
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprintf(w, `{"error": "Authentication header with valid Bearer token required"}`)
+		return
+	}
+	user := ctxCheck.(*models.User)
+	if user.ID == 0 {
+		w.Header().Set("WWW-Authenticate", "Bearer")
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprintf(w, `{"error": "unknown user %s"}`, user.Email)
+		return
+	}
+
+	// admin access required for this resource
+	if !user.IsAdmin {
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprintf(w, `{"error": "admin access required"}`)
 		return
 	}
 
