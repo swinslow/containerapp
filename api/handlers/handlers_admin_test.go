@@ -94,7 +94,7 @@ func TestCannotGetHistoryWithNoUserInContext(t *testing.T) {
 	// not adding any User to context
 	http.HandlerFunc(env.historyHandler).ServeHTTP(rec, req)
 
-	confirmRecWasInvalidAuth(t, rec, "Authentication header with valid Bearer token required")
+	confirmRecWasInvalidAuth(t, rec, "Authorization header with valid Bearer token required")
 }
 
 func TestCannotGetHistoryWithoutValidUserInContext(t *testing.T) {
@@ -280,7 +280,7 @@ func TestCannotGetAllUsersWithNoUserInContext(t *testing.T) {
 	// not adding any User to context
 	http.HandlerFunc(env.getUsersHandler).ServeHTTP(rec, req)
 
-	confirmRecWasInvalidAuth(t, rec, "Authentication header with valid Bearer token required")
+	confirmRecWasInvalidAuth(t, rec, "Authorization header with valid Bearer token required")
 }
 
 func TestCannotGetUsersWithoutValidUserInContext(t *testing.T) {
@@ -580,7 +580,7 @@ func TestCannotPostNewUserWithNoUserInContext(t *testing.T) {
 	// not adding any User to context
 	http.HandlerFunc(env.newUserHandler).ServeHTTP(rec, req)
 
-	confirmRecWasInvalidAuth(t, rec, "Authentication header with valid Bearer token required")
+	confirmRecWasInvalidAuth(t, rec, "Authorization header with valid Bearer token required")
 }
 
 func TestCannotPostNewUserWithoutValidUserInContext(t *testing.T) {

@@ -245,7 +245,7 @@ func TestCannotGetRootHandlerWithNoUserInContext(t *testing.T) {
 	// not adding any User to context
 	http.HandlerFunc(env.rootHandler).ServeHTTP(rec, req)
 
-	confirmRecWasInvalidAuth(t, rec, "Authentication header with valid Bearer token required")
+	confirmRecWasInvalidAuth(t, rec, "Authorization header with valid Bearer token required")
 
 	// and check that AddVisitedPath was not called
 	if len(db.addedVPs) != 0 {

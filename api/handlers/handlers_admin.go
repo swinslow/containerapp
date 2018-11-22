@@ -20,7 +20,7 @@ func extractAdminUser(w http.ResponseWriter, r *http.Request) *models.User {
 	if ctxCheck == nil {
 		w.Header().Set("WWW-Authenticate", "Bearer")
 		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprintf(w, `{"error": "Authentication header with valid Bearer token required"}`)
+		fmt.Fprintf(w, `{"error": "Authorization header with valid Bearer token required"}`)
 		return nil
 	}
 	user := ctxCheck.(*models.User)

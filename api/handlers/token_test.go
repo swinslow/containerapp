@@ -270,7 +270,7 @@ func TestCannotValidateTokenWithNoAuthHeader(t *testing.T) {
 		t.Errorf("expected %v, got %v", wantHeader, gotHeader)
 	}
 
-	wantBody := `{"error": "Authentication header with valid Bearer token required"}`
+	wantBody := `{"error": "Authorization header with valid Bearer token required"}`
 	if rec.Body.String() != wantBody {
 		t.Errorf("expected %s, got %s", wantBody, rec.Body.String())
 	}
@@ -305,7 +305,7 @@ func TestCannotValidateTokenWithInvalidAuthHeaders(t *testing.T) {
 		t.Errorf("expected %v, got %v", wantHeader, gotHeader)
 	}
 
-	wantBody := `{"error": "Authentication header with valid Bearer token required"}`
+	wantBody := `{"error": "Authorization header with valid Bearer token required"}`
 	if rec.Body.String() != wantBody {
 		t.Errorf("expected %s, got %s", wantBody, rec.Body.String())
 	}
@@ -347,7 +347,7 @@ func TestCannotValidateTokenWithNoBearerInHeader(t *testing.T) {
 		t.Errorf("expected %v, got %v", wantHeader, gotHeader)
 	}
 
-	wantBody := `{"error": "Authentication header with valid Bearer token required"}`
+	wantBody := `{"error": "Authorization header with valid Bearer token required"}`
 	if rec.Body.String() != wantBody {
 		t.Errorf("expected %s, got %s", wantBody, rec.Body.String())
 	}
