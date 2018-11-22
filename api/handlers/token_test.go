@@ -159,7 +159,7 @@ func TestCannotPostCreateTokenHandlerWithoutEmailValue(t *testing.T) {
 // sample handler for testing middleware
 func (env *Env) testHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	if user := r.Context().Value(userContextKey(0)).(*models.User); user != nil && user.ID != 0 {
+	if user := r.Context().Value(userContextKey(0)).(*models.User); user != nil {
 		fmt.Fprintf(w, `{"email": "%s", "id": %d}`, user.Email, user.ID)
 	} else {
 		fmt.Fprintf(w, `{"error": "couldn't get context"}`)
@@ -227,23 +227,20 @@ func TestCanValidateTokenMiddlewareForUnknownEmailButIDIsZero(t *testing.T) {
 	wrappedHandler := env.validateTokenMiddleware(env.testHandler)
 	http.HandlerFunc(wrappedHandler).ServeHTTP(rec, req)
 
-	// check that we got a 401 (Unauthorized)
-	if 401 != rec.Code {
-		t.Errorf("Expected %d, got %d", 401, rec.Code)
+	// check that we got a 200 (OK)
+	if 200 != rec.Code {
+		t.Errorf("Expected %d, got %d", 200, rec.Code)
 	}
 
-	// check that we got a WWW-Authenticate header
-	// (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401)
+	// check that content type was application/json
 	header := rec.Result().Header
-	wantHeader := "Bearer"
-	gotHeader := header.Get("WWW-Authenticate")
-	if gotHeader != wantHeader {
-		t.Errorf("expected %v, got %v", wantHeader, gotHeader)
+	if header.Get("Content-Type") != "application/json" {
+		t.Errorf("expected %v, got %v", "application/json", header.Get("Content-Type"))
 	}
 
-	wantBody := `{"error": "unknown user unknown@example.com"}`
-	if rec.Body.String() != wantBody {
-		t.Errorf("expected %s, got %s", wantBody, rec.Body.String())
+	wantString := `{"email": "unknown@example.com", "id": 0}`
+	if rec.Body.String() != wantString {
+		t.Errorf("expected %s, got %s", wantString, rec.Body.String())
 	}
 }
 

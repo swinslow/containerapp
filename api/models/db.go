@@ -47,7 +47,16 @@ func NewDB(srcName string) (*DB, error) {
 func (db *DB) InitDBTables() error {
 	var err error
 	err = db.CreateTableVisitedPath()
-	return err
+	if err != nil {
+		return err
+	}
+
+	err = db.CreateTableUsers()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // CloseDB closes the DB object when the program is exiting.

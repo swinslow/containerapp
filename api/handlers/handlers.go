@@ -15,11 +15,11 @@ import (
 // specified router, for the given environment.
 func (env *Env) RegisterHandlers(router *mux.Router) {
 	router.HandleFunc("/favicon.ico", env.ignoreHandler).Methods("GET")
-	router.HandleFunc("/admin/history", env.historyHandler).Methods("GET")
-	router.HandleFunc("/admin/users", env.getUsersHandler).Methods("GET")
-	router.HandleFunc("/admin/users", env.newUserHandler).Methods("POST")
 	router.HandleFunc("/oauth/getToken", env.createTokenHandler).Methods("POST")
-	router.HandleFunc("/{rest:.*}", env.rootHandler).Methods("GET")
+	router.HandleFunc("/admin/history", env.validateTokenMiddleware(env.historyHandler)).Methods("GET")
+	router.HandleFunc("/admin/users", env.validateTokenMiddleware(env.getUsersHandler)).Methods("GET")
+	router.HandleFunc("/admin/users", env.validateTokenMiddleware(env.newUserHandler)).Methods("POST")
+	router.HandleFunc("/{rest:.*}", env.validateTokenMiddleware(env.rootHandler)).Methods("GET")
 }
 
 func (env *Env) rootHandler(w http.ResponseWriter, r *http.Request) {

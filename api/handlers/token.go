@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/swinslow/containerapp/api/models"
 )
 
 func (env *Env) createTokenHandler(w http.ResponseWriter, r *http.Request) {
@@ -101,11 +102,12 @@ func (env *Env) validateTokenMiddleware(next http.HandlerFunc) http.HandlerFunc 
 		// make sure this email also exists in the User database
 		user, err := env.db.GetUserByEmail(email)
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.Header().Set("WWW-Authenticate", "Bearer")
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprintf(w, `{"error": "unknown user %s"}`, email)
-			return
+			user = &models.User{
+				ID:      0,
+				Email:   email,
+				Name:    "",
+				IsAdmin: false,
+			}
 		}
 
 		// good to go! set context and move on

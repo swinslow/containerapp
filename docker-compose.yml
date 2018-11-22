@@ -13,7 +13,8 @@ services:
     depends_on:
       - db
     environment:
-      WEBPORT: 3005
+      - WEBPORT=3005
+      - JWTSECRETKEY
 
   db:
     image: postgres
