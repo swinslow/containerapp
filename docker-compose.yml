@@ -15,6 +15,7 @@ services:
     environment:
       - WEBPORT=3005
       - JWTSECRETKEY
+      - INITIALADMINEMAIL
 
   db:
     image: postgres

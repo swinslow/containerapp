@@ -1,6 +1,9 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 // User describes a registered user of the platform.
 type User struct {
@@ -20,6 +23,21 @@ func (db *DB) CreateTableUsers() error {
 			is_admin BOOLEAN NOT NULL
 		)
 	`)
+	if err != nil {
+		return err
+	}
+
+	// if there are no users yet, and if INITIALADMINEMAIL env var
+	// is also set, we'll create an initial administrative user
+	// with ID 1
+	users, err := db.GetAllUsers()
+	if err == nil && len(users) == 0 {
+		INITIALADMINEMAIL := os.Getenv("INITIALADMINEMAIL")
+		if INITIALADMINEMAIL != "" {
+			err = db.AddUser(1, INITIALADMINEMAIL, "", true)
+		}
+	}
+
 	return err
 }
 

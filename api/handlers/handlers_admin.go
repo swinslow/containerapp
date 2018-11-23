@@ -109,51 +109,7 @@ type newUserReq struct {
 	Email string `json:"email"`
 }
 
-func (env *Env) newUserHandler(w http.ResponseWriter, r *http.Request) {
-	setToAdmin := false
-
-	// send JSON responses
-	w.Header().Set("Content-Type", "application/json")
-
-	// we only take POST requests
-	if r.Method != "POST" {
-		http.Error(w, http.StatusText(405), 405)
-		return
-	}
-
-	// see if this is a brand new, uninitialized database -- in other
-	// words, if it has no users. if so, we'll create the first user
-	// even though there's no auth (because they can't auth yet!)
-	// FIXME in a production system, this is a dumb way to pick the
-	// FIXME first admin user.
-	if users, err := env.db.GetAllUsers(); err == nil && len(users) == 0 {
-		// new database, so skip the admin check.
-		// also flag that the new user should be an admin.
-		setToAdmin = true
-	} else {
-		user := extractAdminUser(w, r)
-		if user == nil {
-			return
-		}
-	}
-
-	// once we're here, we're talking to an admin user
-
-	// extract JSON content
-	var newUser newUserReq
-	err := json.NewDecoder(r.Body).Decode(&newUser)
-	if err != nil {
-		http.Error(w, http.StatusText(400), 400)
-		return
-	}
-
-	// make sure this user doesn't already exist in database
-	if userCheck, err := env.db.GetUserByEmail(newUser.Email); err == nil && userCheck != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `{"error": "user with email %s already exists"}`, newUser.Email)
-		return
-	}
-
+func (env *Env) generateIDForNewUser() uint32 {
 	// generate random new, non-zero, currently-unused ID within permitted range
 	// FIXME note that this process for finding an unused ID will get decreasingly
 	// FIXME usable if you have a massive number of users.
@@ -176,13 +132,51 @@ func (env *Env) newUserHandler(w http.ResponseWriter, r *http.Request) {
 		newID = utestID
 	}
 
+	return newID
+}
+
+func (env *Env) newUserHandler(w http.ResponseWriter, r *http.Request) {
+	// send JSON responses
+	w.Header().Set("Content-Type", "application/json")
+
+	// we only take POST requests
+	if r.Method != "POST" {
+		http.Error(w, http.StatusText(405), 405)
+		return
+	}
+
+	user := extractAdminUser(w, r)
+	if user == nil {
+		return
+	}
+
+	// once we're here, we're talking to an admin user
+
+	// extract JSON content
+	var newUser newUserReq
+	err := json.NewDecoder(r.Body).Decode(&newUser)
+	if err != nil {
+		http.Error(w, http.StatusText(400), 400)
+		return
+	}
+
+	// make sure this user doesn't already exist in database
+	if userCheck, err := env.db.GetUserByEmail(newUser.Email); err == nil && userCheck != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"error": "user with email %s already exists"}`, newUser.Email)
+		return
+	}
+
+	// generate new ID for new user
+	newID := env.generateIDForNewUser()
+
 	// create and save new user
 	// FIXME note that the new ID selection is NOT safe across multiple
 	// FIXME requests. two separate requests could both claim the same
 	// FIXME ID as available above, and then both try to save them here.
 	// FIXME This will be prevented by the database, presumably, but it
 	// FIXME should be addressed in a real production system.
-	err = env.db.AddUser(newID, newUser.Email, newUser.Name, setToAdmin)
+	err = env.db.AddUser(newID, newUser.Email, newUser.Name, false)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, `{"error": "server error saving new user, please check values and try again"}`)
@@ -194,7 +188,7 @@ func (env *Env) newUserHandler(w http.ResponseWriter, r *http.Request) {
 		ID:      newID,
 		Email:   newUser.Email,
 		Name:    newUser.Name,
-		IsAdmin: setToAdmin,
+		IsAdmin: false,
 	}
 	w.WriteHeader(http.StatusCreated)
 	js, err := json.Marshal(finalUser)

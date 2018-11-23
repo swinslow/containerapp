@@ -274,3 +274,74 @@ func TestCannotPostRootHandler(t *testing.T) {
 		t.Errorf("expected len %d, got %d", 0, len(db.addedVPs))
 	}
 }
+
+// ===== Route: GET /landing =====
+
+func TestCanGetLandingHandler(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/landing", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	db := &mockDB{}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+
+	// add User to context (assumes validation has already occurred)
+	user, err := db.GetUserByEmail("janedoe@example.com")
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, userContextKey(0), user)
+	req = req.WithContext(ctx)
+	http.HandlerFunc(env.landingHandler).ServeHTTP(rec, req)
+
+	// check that we got a 200 (OK)
+	if 200 != rec.Code {
+		t.Errorf("Expected %d, got %d", 200, rec.Code)
+	}
+
+	// check that content type was application/json
+	header := rec.Result().Header
+	if header.Get("Content-Type") != "application/json" {
+		t.Errorf("expected %v, got %v", "application/json", header.Get("Content-Type"))
+	}
+
+	// check that the correct JSON strings were returned
+	gotUser := &models.User{}
+	err = json.Unmarshal([]byte(rec.Body.String()), &gotUser)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	if gotUser.ID != 914611345 {
+		t.Errorf("expected %v, got %v", 914611345, gotUser.ID)
+	}
+	if gotUser.Email != "janedoe@example.com" {
+		t.Errorf("expected %v, got %v", "janedoe@example.com", gotUser.Email)
+	}
+	if gotUser.Name != "Jane Doe" {
+		t.Errorf("expected %v, got %v", "Jane Doe", gotUser.Name)
+	}
+	if gotUser.IsAdmin != true {
+		t.Errorf("expected %v, got %v", true, gotUser.IsAdmin)
+	}
+}
+
+func TestCannotPostLandingHandler(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req, err := http.NewRequest("POST", "/landing", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+
+	db := &mockDB{}
+	env := Env{db: db, jwtSecretKey: "keyForTesting"}
+	http.HandlerFunc(env.landingHandler).ServeHTTP(rec, req)
+
+	// check that we got a 405
+	if 405 != rec.Code {
+		t.Errorf("Expected %d, got %d", 405, rec.Code)
+	}
+}
