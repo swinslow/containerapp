@@ -21,8 +21,7 @@ function createHistoryRows(history) {
 }
 
 function HistoryTable(props) {
-    const ready = props.ready;
-    if (!ready) {
+    if (props.history === null) {
         return (
             <div>Loading...</div>
         );
