@@ -44,6 +44,12 @@ class App extends Component {
   componentDidMount() {
     // create token manager and fetch token
     this.tokenManager = new TokenManager(APIROOT, this.setToken, this.setMyself)
+
+    // load token from local storage if it's already there
+    const checkToken = localStorage.getItem("apitoken")
+    if (checkToken) {
+      this.setToken(checkToken)
+    }
   }
 
   isLoggedIn() {
@@ -87,8 +93,11 @@ class App extends Component {
 
   setToken = (token) => {
     this.setState({jwtToken: token});
-    if (token !== null) {
-      this.tokenManager.fetchLoginInfo(this.state.jwtToken);
+    if (token === null) {
+      localStorage.removeItem("apitoken");
+    } else {
+      localStorage.setItem("apitoken", token);
+      this.tokenManager.fetchLoginInfo(token);
     }
   }
 
