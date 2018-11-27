@@ -1,5 +1,5 @@
 import React from 'react'
-import { Redirect } from "react-router-dom";
+import { Link, Redirect } from "react-router-dom";
 import { Form } from 'semantic-ui-react'
 
 function PathInput(props) {
@@ -14,14 +14,16 @@ function PathInput(props) {
         </div>
     }
 
-    const adminString = (props.myself.isAdmin) ? " (ADMIN) " : "";
+    const adminJSX = (props.myself.isAdmin) ?
+        <span> (<Link to="/admin">ADMIN</Link>)</span> :
+        <span> </span>;
     const lastPathString = (props.lastPathResponse !== null) ?
         "(last response: " + JSON.stringify(props.lastPathResponse) + ")" :
         "";
 
     return (
         <div>
-            <h4>Logged in as {props.myself.email} {adminString}</h4>
+            <h4>Logged in as {props.myself.email} {adminJSX}</h4>
             <div>
                 <Form onSubmit={props.onSubmit}>
                     <Form.Group>

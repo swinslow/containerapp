@@ -6,6 +6,7 @@ import 'semantic-ui-css/semantic.min.css';
 import LoginPane from './LoginPane.js';
 import PathInput from './PathInput';
 import TokenManager from './TokenManager';
+import AdminPane from './AdminPane';
 import './App.css';
 
 const APIROOT = 'http://localhost:3005'
@@ -27,9 +28,7 @@ class App extends Component {
         isAdmin: false
       }
     }
-  }
 
-  componentDidMount() {
     // set bindings
     this.handleRefresh = this.handleRefresh.bind(this)
     this.handlePathInputChange = this.handlePathInputChange.bind(this)
@@ -39,7 +38,10 @@ class App extends Component {
     this.setToken = this.setToken.bind(this)
     this.resetMyself = this.resetMyself.bind(this)
     this.setMyself = this.setMyself.bind(this)
+    this.refreshHistory = this.refreshHistory.bind(this)
+  }
 
+  componentDidMount() {
     // create token manager and fetch token
     this.tokenManager = new TokenManager(APIROOT, this.setToken, this.setMyself)
   }
@@ -110,7 +112,13 @@ class App extends Component {
   refreshHistory() {
     // call to retrieve JSON and update state
     const historyEndpoint = APIROOT + '/admin/history';
-    axios.get(historyEndpoint)
+    const config = {
+      headers: {
+          "Authorization": "Bearer " + this.state.jwtToken,
+          "Content-Type": "application/json"
+      }
+    }
+    axios.get(historyEndpoint, config)
       .then(res => {
         const history = res.data;
         this.setState({history});
@@ -166,13 +174,9 @@ class App extends Component {
               </div>
             </Route>
             <Route path="/admin">
-              <div className="App">
-                <header className="App-header">
-                  <div>
-                    ADMIN PANEL GOES HERE
-                  </div>
-                </header>
-              </div>
+              <AdminPane onRefresh={this.refreshHistory}
+                         isLoggedIn={this.isLoggedIn}
+                         history={this.state.history} />
             </Route>
           </Switch>
         </div>
