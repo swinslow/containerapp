@@ -7,15 +7,34 @@ function PathInput(props) {
         return <Redirect to='/' />
     }
 
+    if (props.myself !== null && props.email !== "" && !props.myself.isKnownUser) {
+        return <div>
+            <h2>Unknown user {props.myself.email}</h2>
+            <button onClick={props.onLogout}>Go to Login page</button>
+        </div>
+    }
+
+    const adminString = (props.myself.isAdmin) ? " (ADMIN) " : "";
+    const lastPathString = (props.lastPathResponse !== null) ?
+        "(last response: " + JSON.stringify(props.lastPathResponse) + ")" :
+        "";
+
     return (
-        <Form onSubmit={props.onSubmit}>
-            <Form.Group>
-                <Form.Input type="text"
-                            value={props.pathInputValue}
-                            onChange={props.onChange} />
-                <Form.Button icon="arrow right" />
-            </Form.Group>
-        </Form>
+        <div>
+            <h4>Logged in as {props.myself.email} {adminString}</h4>
+            <div>
+                <Form onSubmit={props.onSubmit}>
+                    <Form.Group>
+                        <Form.Input type="text"
+                                    value={props.pathInputValue}
+                                    onChange={props.onChange} />
+                        <Form.Button icon="arrow right" />
+                    </Form.Group>
+                </Form>
+            </div>
+            <div>{lastPathString}</div>
+            <button onClick={props.onLogout}>Logout</button>
+        </div>
     )
 }
 

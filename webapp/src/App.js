@@ -6,7 +6,6 @@ import 'semantic-ui-css/semantic.min.css';
 import LoginPane from './LoginPane.js';
 import PathInput from './PathInput';
 import TokenManager from './TokenManager';
-import FetchManager from './FetchManager';
 import './App.css';
 
 const APIROOT = 'http://localhost:3005'
@@ -19,6 +18,7 @@ class App extends Component {
       history: null,
       emailInputContents: "",
       pathInputContents: "",
+      lastPathResponse: null,
       jwtToken: null,
       myself: {
         isKnownUser: false,
@@ -34,26 +34,20 @@ class App extends Component {
     this.handleRefresh = this.handleRefresh.bind(this)
     this.handlePathInputChange = this.handlePathInputChange.bind(this)
     this.handlePathInputSubmit = this.handlePathInputSubmit.bind(this)
+    this.handleLogout = this.handleLogout.bind(this)
     this.isLoggedIn = this.isLoggedIn.bind(this)
     this.setToken = this.setToken.bind(this)
     this.resetMyself = this.resetMyself.bind(this)
     this.setMyself = this.setMyself.bind(this)
 
-    // load history for the first time
-    this.refreshHistory()
-
     // create token manager and fetch token
     this.tokenManager = new TokenManager(APIROOT, this.setToken, this.setMyself)
-
-    // create fetch manager
-    this.fetchManager = new FetchManager()
   }
 
   isLoggedIn() {
     if (this.state === undefined) {
       return false;
     }
-    //console.log("this.state.jwtToken = " + this.state.jwtToken);
     return this.state.jwtToken !== null && this.state.jwtToken !== undefined
   }
 
@@ -69,10 +63,18 @@ class App extends Component {
     e.preventDefault();
     // call to retrieve JSON and update state
     const requestedEndpoint = APIROOT + '/' + this.state.pathInputContents;
-    axios.get(requestedEndpoint)
+    const config = {
+      headers: {
+          "Authorization": "Bearer " + this.state.jwtToken,
+          "Content-Type": "application/json"
+      }
+    }
+    axios.get(requestedEndpoint, config)
       .then(res => {
-        this.setState({pathInputContents: ""});
-        this.refreshHistory()
+        this.setState({
+          lastPathResponse: res.data,
+          pathInputContents: ""
+        });
       })
       .catch(err => {
         // const errorFlag = true;
@@ -83,7 +85,9 @@ class App extends Component {
 
   setToken = (token) => {
     this.setState({jwtToken: token});
-    this.tokenManager.fetchLoginInfo(this.state.jwtToken);
+    if (token !== null) {
+      this.tokenManager.fetchLoginInfo(this.state.jwtToken);
+    }
   }
 
   resetMyself = () => {
@@ -126,6 +130,13 @@ class App extends Component {
     this.setState({emailInputContents: ""});
   }
 
+  handleLogout = (e) => {
+    e.preventDefault();
+    this.setState({lastPathResponse: null});
+    this.resetMyself();
+    this.setToken(null);
+  }
+
   render() {
     return (
       <Router>
@@ -142,11 +153,23 @@ class App extends Component {
               <div className="App">
                 <header className="App-header">
                   <div>
-                    <PathInput pathInputValue={this.state.pathInputContents}
+                    <PathInput myself={this.state.myself}
+                              pathInputValue={this.state.pathInputContents}
+                              lastPathResponse={this.state.lastPathResponse}
                               isLoggedIn={this.isLoggedIn}
                               onChange={this.handlePathInputChange}
                               onSubmit={this.handlePathInputSubmit}
+                              onLogout={this.handleLogout}
                     />
+                  </div>
+                </header>
+              </div>
+            </Route>
+            <Route path="/admin">
+              <div className="App">
+                <header className="App-header">
+                  <div>
+                    ADMIN PANEL GOES HERE
                   </div>
                 </header>
               </div>

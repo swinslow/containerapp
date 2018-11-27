@@ -29,6 +29,10 @@ class TokenManager {
     }
 
     fetchLoginInfo(token) {
+        if (token === null) {
+            this.onFetchLoginInfo(null);
+        }
+
         const url = this.apiroot + "/landing";
         const config = {
             headers: {
@@ -41,7 +45,6 @@ class TokenManager {
         // FIXME e.g. if token is invalid or indicates caller is not logged in
         axios.get(url, config)
         .then(res => {
-            console.log("res.status: " + res.status)
             if (res.status === 200) {
                 let myself = {
                     isKnownUser: (res.data.id !== 0),
