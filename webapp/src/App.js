@@ -17,6 +17,7 @@ class App extends Component {
 
     this.state = {
       history: null,
+      users: null,
       emailInputContents: "",
       pathInputContents: "",
       lastPathResponse: null,
@@ -30,7 +31,6 @@ class App extends Component {
     }
 
     // set bindings
-    this.handleRefresh = this.handleRefresh.bind(this)
     this.handlePathInputChange = this.handlePathInputChange.bind(this)
     this.handlePathInputSubmit = this.handlePathInputSubmit.bind(this)
     this.handleLogout = this.handleLogout.bind(this)
@@ -39,6 +39,8 @@ class App extends Component {
     this.resetMyself = this.resetMyself.bind(this)
     this.setMyself = this.setMyself.bind(this)
     this.refreshHistory = this.refreshHistory.bind(this)
+    this.refreshUsers = this.refreshUsers.bind(this)
+    this.refreshAdmin = this.refreshAdmin.bind(this)
   }
 
   componentDidMount() {
@@ -57,10 +59,6 @@ class App extends Component {
       return false;
     }
     return this.state.jwtToken !== null && this.state.jwtToken !== undefined
-  }
-
-  handleRefresh = (e) => {
-    this.refreshHistory();
   }
 
   handlePathInputChange = (e) => {
@@ -138,6 +136,31 @@ class App extends Component {
       });
   }
 
+  refreshUsers() {
+    // call to retrieve JSON and update state
+    const usersEndpoint = APIROOT + '/admin/users';
+    const config = {
+      headers: {
+          "Authorization": "Bearer " + this.state.jwtToken,
+          "Content-Type": "application/json"
+      }
+    }
+    axios.get(usersEndpoint, config)
+      .then(res => {
+        const users = res.data;
+        this.setState({users});
+      })
+      .catch(err => {
+        const users = null;
+        this.setState({users});
+      });
+  }
+
+  refreshAdmin() {
+    this.refreshHistory()
+    this.refreshUsers()
+  }
+
   handleEmailInputChange = (e) => {
     this.setState({emailInputContents: e.target.value});
   }
@@ -183,9 +206,10 @@ class App extends Component {
               </div>
             </Route>
             <Route path="/admin">
-              <AdminPane onRefresh={this.refreshHistory}
+              <AdminPane onRefresh={this.refreshAdmin}
                          isLoggedIn={this.isLoggedIn}
-                         history={this.state.history} />
+                         history={this.state.history}
+                         users={this.state.users} />
             </Route>
           </Switch>
         </div>
