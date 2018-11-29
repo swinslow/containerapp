@@ -20,6 +20,9 @@ class App extends Component {
       users: null,
       emailInputContents: "",
       pathInputContents: "",
+      newUserName: "",
+      newUserEmail: "",
+      newUserIsAdmin: false,
       lastPathResponse: null,
       jwtToken: null,
       myself: {
@@ -33,6 +36,8 @@ class App extends Component {
     // set bindings
     this.handlePathInputChange = this.handlePathInputChange.bind(this)
     this.handlePathInputSubmit = this.handlePathInputSubmit.bind(this)
+    this.handleNewUserChange = this.handleNewUserChange.bind(this)
+    this.handleNewUserSubmit = this.handleNewUserSubmit.bind(this)
     this.handleLogout = this.handleLogout.bind(this)
     this.isLoggedIn = this.isLoggedIn.bind(this)
     this.setToken = this.setToken.bind(this)
@@ -84,7 +89,56 @@ class App extends Component {
       })
       .catch(err => {
         // const errorFlag = true;
-        // const errorMsg = "Couldn't load list of projects";
+        // const errorMsg = "Couldn't get path from API";
+        // this.setState({errorFlag, errorMsg});
+      });
+  }
+
+  handleNewUserChange = (e) => {
+    switch(e.target.name) {
+      case 'name':
+        this.setState({newUserName: e.target.value});
+        break;
+      case 'email':
+        this.setState({newUserEmail: e.target.value});
+        break;
+      case 'isAdmin':
+        this.setState({newUserIsAdmin: !this.state.newUserIsAdmin});
+        break;
+      default:
+        console.log("unknown element name: " + e.target.name);
+        break;
+    }
+  }
+
+  handleNewUserSubmit = (e) => {
+    e.preventDefault();
+    // call to retrieve JSON and update state
+    const requestedEndpoint = APIROOT + '/admin/users';
+    const data = {
+      name: this.state.newUserName,
+      email: this.state.newUserEmail,
+      is_admin: this.state.newUserIsAdmin
+    }
+    const config = {
+      headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          "Authorization": "Bearer " + this.state.jwtToken,
+          "Content-Type": "application/json"
+      }
+    }
+    axios.post(requestedEndpoint, data, config)
+      .then(res => {
+        this.setState({
+          newUserName: "",
+          newUserEmail: "",
+          newUserIsAdmin: false
+        });
+        this.refreshUsers();
+      })
+      .catch(err => {
+        // const errorFlag = true;
+        // const errorMsg = "Couldn't post new user";
         // this.setState({errorFlag, errorMsg});
       });
   }
@@ -209,7 +263,12 @@ class App extends Component {
               <AdminPane onRefresh={this.refreshAdmin}
                          isLoggedIn={this.isLoggedIn}
                          history={this.state.history}
-                         users={this.state.users} />
+                         users={this.state.users}
+                         newUserName={this.state.newUserName}
+                         newUserEmail={this.state.newUserEmail}
+                         newUserIsAdmin={this.state.newUserIsAdmin}
+                         onNewUserChange={this.handleNewUserChange}
+                         onNewUserSubmit={this.handleNewUserSubmit} />
             </Route>
           </Switch>
         </div>
