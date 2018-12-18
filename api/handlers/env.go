@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"golang.org/x/oauth2"
+	githuboauth "golang.org/x/oauth2/github"
+
 	"github.com/swinslow/containerapp/api/models"
 )
 
@@ -11,6 +14,7 @@ import (
 type Env struct {
 	db           models.Datastore
 	jwtSecretKey string
+	oauthConfig  *oauth2.Config
 }
 
 // SetupEnv sets up systems (such as the data store) and variables
@@ -33,9 +37,25 @@ func SetupEnv() (*Env, error) {
 		return nil, fmt.Errorf("No secret key found; set environment variable JWTSECRETKEY before starting")
 	}
 
+	// set up GitHub client ID / client secret (from environment)
+	GITHUBCLIENTID := os.Getenv("GITHUBCLIENTID")
+	if GITHUBCLIENTID == "" {
+		return nil, fmt.Errorf("No GitHub client ID found; set environment variable GITHUBCLIENTID before starting")
+	}
+	GITHUBCLIENTSECRET := os.Getenv("GITHUBCLIENTSECRET")
+	if GITHUBCLIENTSECRET == "" {
+		return nil, fmt.Errorf("No GitHub client ID found; set environment variable GITHUBCLIENTSECRET before starting")
+	}
+
 	env := &Env{
 		db:           db,
 		jwtSecretKey: JWTSECRETKEY,
+		oauthConfig: &oauth2.Config{
+			ClientID:     GITHUBCLIENTID,
+			ClientSecret: GITHUBCLIENTSECRET,
+			Scopes:       []string{"user:email"},
+			Endpoint:     githuboauth.Endpoint,
+		},
 	}
 	return env, nil
 }

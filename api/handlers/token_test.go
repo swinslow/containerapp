@@ -11,7 +11,52 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/swinslow/containerapp/api/models"
+	"golang.org/x/oauth2"
+	githuboauth "golang.org/x/oauth2/github"
 )
+
+func TestGithubLoginHandlerCausesRedirect(t *testing.T) {
+	rec := httptest.NewRecorder()
+	// user should send a state string as URL query parameter
+	req, err := http.NewRequest("GET", "/oauth/githubLogin", nil)
+	if err != nil {
+		t.Fatalf("got non-nil error: %v", err)
+	}
+	stateString := "thisIsAStateString"
+	q := req.URL.Query()
+	q.Add("state", stateString)
+	req.URL.RawQuery = q.Encode()
+
+	db := &mockDB{}
+	env := Env{
+		db:           db,
+		jwtSecretKey: "keyForTesting",
+		oauthConfig: &oauth2.Config{
+			ClientID:     "idForTesting",
+			ClientSecret: "secretForTesting",
+			Scopes:       []string{"user:email"},
+			Endpoint:     githuboauth.Endpoint,
+		},
+	}
+	http.HandlerFunc(env.githubLoginHandler).ServeHTTP(rec, req)
+
+	// check that we got a 307 (Temporary Redirect)
+	if 307 != rec.Code {
+		t.Errorf("Expected %d, got %d", 307, rec.Code)
+	}
+
+	// check that Location was an appropriate Github oauth domain
+	header := rec.Result().Header
+	locHeader := header.Get("Location")
+	if !strings.HasPrefix(locHeader, "https://github.com/login/oauth/authorize") {
+		t.Errorf("expected prefix with https://github.com/login/oauth/authorize, got %v", locHeader)
+	}
+
+	// and the client's state string should be there too
+	if !strings.Contains(locHeader, stateString) {
+		t.Errorf("expected location to contain %v, not found in %v", stateString, locHeader)
+	}
+}
 
 func TestCanPostCreateTokenHandler(t *testing.T) {
 	rec := httptest.NewRecorder()
